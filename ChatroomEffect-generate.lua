@@ -476,7 +476,66 @@ local measure_layout = function(line, styles, layout, layer, rect, data)
 			orientation = unicode.to_lower_case(layout.orientation)
 		else log_error("orientation值的格式不正确。")
 		end
-
+		
+		local contentavaliablerect = {
+			x = avaliablerect.x,
+			y = avaliablerect.y,
+			width = avaliablerect.width,
+			height = avaliablerect.height
+		}
+		for index, contentlayout in ipairs(layout) do
+			local contentlayer = contentlayout.layer or layer + 1
+			local _, contentminsize = measure_layout(line, styles, contentlayout, contentlayer, contentavaliablerect, data[index])
+			if layout.orientation == "down" then
+				local contentrect = {
+					x = contentavaliablerect.x,
+					y = contentavaliablerect.y,
+					width = contentavaliablerect.width,
+					height = contentminsize.height
+				}
+				local contentresult, contentminsize = measure_layout(line, styles, contentlayout, contentlayer, contentrect, data[index])
+				table.insert(result, contentresult)
+				
+				contentavaliablerect.y = contentavaliablerect.y + contentrect.height
+				contentavaliablerect.height = contentavaliablerect.height - contentrect.height
+			elseif layout.orientation == "up" then
+				local contentrect = {
+					x = contentavaliablerect.x,
+					y = contentavaliablerect.height - contentminsize.height,
+					width = contentavaliablerect.width,
+					height = contentminsize.height
+				}
+				local contentresult, contentminsize = measure_layout(line, styles, contentlayout, contentlayer, contentrect, data[index])
+				table.insert(result, contentresult)
+				
+				contentavaliablerect.height = contentavaliablerect.height - contentrect.height
+			elseif layout.orientation == "right" then
+				local contentrect = {
+					x = contentavaliablerect.x,
+					y = contentavaliablerect.y,
+					width = contentminsize.width,
+					height = contentavaliablerect.height
+				}
+				local contentresult, contentminsize = measure_layout(line, styles, contentlayout, contentlayer, contentrect, data[index])
+				table.insert(result, contentresult)
+				
+				contentavaliablerect.x = contentavaliablerect.x + contentrect.width
+				contentavaliablerect.width = contentavaliablerect.width - contentrect.width
+			elseif layout.orientation == "left" then
+				local contentrect = {
+					x = contentavaliablerect.width - contentminsize.width,
+					y = contentavaliablerect.y,
+					width = contentminsize.width,
+					height = contentavaliablerect.height
+				}
+				local contentresult, contentminsize = measure_layout(line, styles, contentlayout, contentlayer, contentrect, data[index])
+				table.insert(result, contentresult)
+				
+				contentavaliablerect.width = contentavaliablerect.width - contentrect.width
+			end
+			
+			if contentavaliablerect.width <= 0 or contentavaliablerect.height <= 0 then break end
+		end
 	elseif layout.layouttype == "table" then -- 表式布局
 	end
 	
@@ -504,7 +563,7 @@ end
 local text_layout = function(style, size, data)
 	regexresult = regexutil.match("\\s+(?=\\S|$)|[\\dA-Za-z]+(?=[^\\dA-Za-z]|$)|\\b.+?\\b|\\S+(?=\\s|$)", data)
 	
-	local linebuffer = {}
+	local linebuffer = { length = 0 }
 	local spanbuffer = {}
 	for _, match in ipairs(regexresult) do
 		local wrappable
@@ -514,17 +573,20 @@ local text_layout = function(style, size, data)
 		
 		table.insert(spanbuffer, match.str)
 		while true do
-			local w, h, d, el = aegis.text_extents(style, table.concat(spanbuffer))
+			local w, h, d, el = aegisub.text_extents(style, table.concat(spanbuffer))
 			if w <= size.width then break
 			elseif wrappable or #spanbuffer == 1 then
 				table.remove(spanbuffer, #spanbuffer)
 				
 				for c in unicode.chars(match.str) do
 					table.insert(spanbuffer, c)
-					local w, h, d, el = aegis.text_extents(style, table.concat(spanbuffer))
+					local w, h, d, el = aegisub.text_extents(style, table.concat(spanbuffer))
 					if #spanbuffer > 1 and w > size.width then
 						table.remove(spanbuffer, #spanbuffer)
+						spanbuffer.length, spanbuffer.height = aegisub.text_extents(style, table.concat(spanbuffer))
 						table.insert(linebuffer, table.concat(spanbuffer))
+						linebuffer.length = math.max(linebuffer.length, spanbuffer.length)
+						linebuffer.height = linebuffer.height + spanbuffer.height
 						spanbuffer = {}
 						table.insert(spanbuffer, c)
 					end
@@ -534,20 +596,25 @@ local text_layout = function(style, size, data)
 				end
 			else
 				table.remove(spanbuffer, #spanbuffer)
+				spanbuffer.length, spanbuffer.height = aegisub.text_extents(style, table.concat(spanbuffer))
 				table.insert(linebuffer, table.concat(spanbuffer))
+				linebuffer.length = math.max(linebuffer.length, spanbuffer.length)
+				linebuffer.height = linebuffer.height + spanbuffer.height
 				spanbuffer = {}
 				table.insert(spanbuffer, match.str)
 			end
 		end
 	end
 	if #spanbuffer ~= 0 then
+		spanbuffer.length, spanbuffer.height = aegisub.text_extents(style, table.concat(spanbuffer))
 		table.insert(linebuffer, table.concat(spanbuffer))
+		linebuffer.length = math.max(linebuffer.length, spanbuffer.length)
+		linebuffer.height = linebuffer.height + spanbuffer.height
 		spanbuffer = {}
 	end
 	
 	local wrappedtext = table.concat(linebuffer, "\\N")
-	local w, h, d, el = aegis.text_extents(style, table.concat(wrappedtext))
-	return { width = w, height = h }, wrappedtext
+	return { width = linebuffer.length, height = linebuffer.height }, wrappedtext
 end
 
 aegisub.register_macro(script_name, script_description, process_main)
