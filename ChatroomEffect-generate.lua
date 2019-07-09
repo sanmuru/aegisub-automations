@@ -62,23 +62,26 @@ local measure_layout = function(line, styles, layout, layer, rect, data)
 	local margin
 	if layout.margin == nil then margin = { left = 0, right = 0, top = 0, bottom = 0 }
 	elseif tonumber(layout.margin) ~= nil then margin = { left = tonumber(layout.margin), right = tonumber(layout.margin), top = tonumber(layout.margin), bottom = tonumber(layout.margin) }
-	elseif type(layout.margin) == "string" and regexutil.find("\\s*,\\s*(\\d*\\.\\d*||\\d+)(\\s*(\\d*\\.\\d*||\\d+)){2,4}\\s*", layout.margin) then
-		regexresult = regexutil.find("(?:(^|,)\\s*)\\d*\\.\\d*||\\d+(?:\\s*($|,))", layout.margin)
-		if #regexresult.margin == 2 then
-			margin = {
-				left = tonumber(regexresult[1]),
-				right = tonumber(regexresult[1]),
-				top = tonumber(regexresult[2]),
-				bottom = tonumber(regexresult[2])
-			}
-		elseif #regexresult.margin == 4 then
-			margin = {
-				left = tonumber(regexresult[1]),
-				right = tonumber(regexresult[2]),
-				top = tonumber(regexresult[3]),
-				bottom = tonumber(regexresult[4])
-			}
-		else log_error("margin值的格式不正确。")
+	elseif type(layout.margin) == "string" then
+		if util.trim(layout.margin) == "" then margin = { left = 0, right = 0, top = 0, bottom = 0 }
+		elseif regexutil.find("^\\s*(\\d*\\.\\d*|\\d+)(\\s*,\\s*(\\d*\\.\\d*|\\d+)){1,3}\\s*$", layout.margin) then
+			regexresult = regexutil.find("(?:(^|,)\\s*)\\d*\\.\\d*|\\d+(?:\\s*($|,))", layout.margin)
+			if #regexresult == 2 then
+				margin = {
+					left = tonumber(regexresult[1].str),
+					right = tonumber(regexresult[1].str),
+					top = tonumber(regexresult[2].str),
+					bottom = tonumber(regexresult[2].str)
+				}
+			elseif #regexresult == 4 then
+				margin = {
+					left = tonumber(regexresult[1].str),
+					right = tonumber(regexresult[2].str),
+					top = tonumber(regexresult[3].str),
+					bottom = tonumber(regexresult[4].str)
+				}
+			else log_error("margin值的格式不正确。")
+			end
 		end
 	elseif type(layout.margin) == "table" then
 		if layout.margin.left or layout.margin.right or layout.margin.top or layout.margin.bottom then
@@ -104,7 +107,7 @@ local measure_layout = function(line, styles, layout, layer, rect, data)
 			}
 		else log_error("margin值的格式不正确。")
 		end
-	else samlu.log.error("margin值的格式不正确。")
+	else log_error("margin值的格式不正确。")
 	end
 	
 	-- 计算宽度和高度的最小值和最大值。
@@ -113,25 +116,25 @@ local measure_layout = function(line, styles, layout, layer, rect, data)
 	elseif tonumber(layout.minwidth) ~= nil then
 		minwidth = tonumber(layout.minwidth)
 		if minwidth < 0 then log_error("minwidth值不应小于零。") end
-	else samlu.log.error("minwidth值的格式不正确。")
+	else log_error("minwidth值的格式不正确。")
 	end
 	if layout.maxwidth == nil then ;
 	elseif tonumber(layout.maxwidth) ~= nil then
 		maxwidth = tonumber(layout.maxwidth)
 		if maxwidth < minwidth then log_error("maxwidth值不应小于minwidth。") end
-	else samlu.log.error("minwidth值的格式不正确。")
+	else log_error("minwidth值的格式不正确。")
 	end
 	if layout.minheight == nil then minheight = 0
 	elseif tonumber(layout.minheight) ~= nil then
 		minheight = tonumber(layout.minheight)
 		if minheight < 0 then log_error("minheight值不应小于零。") end
-	else samlu.log.error("minheight值的格式不正确。")
+	else log_error("minheight值的格式不正确。")
 	end
 	if layout.maxheight == nil then ;
 	elseif tonumber(layout.maxheight) ~= nil then
 		maxheight = tonumber(layout.maxheight)
 		if maxheight < minheight then log_error("maxheight值不应小于minheight。") end
-	else samlu.log.error("minheight值的格式不正确。")
+	else log_error("minheight值的格式不正确。")
 	end
 	
 	-- 计算宽度和高度。
@@ -250,6 +253,89 @@ local measure_layout = function(line, styles, layout, layer, rect, data)
 			width = wrappedtextminsize.width + margin.left + margin.right,
 			height = wrappedtextminsize.height + margin.top + margin.bottom
 		}
+	elseif layout.layouttype == "image" then -- 图像布局
+		-- 计算图像的缩放模式。
+		local scalemode
+		if layout.scalemode == nil then scalemode = "none"
+		elseif unicode.to_lower_case(layout.scalemode) == "none" or unicode.to_lower_case(layout.scalemode) == "fill" or unicode.to_lower_case(layout.scalemode) == "aspectfit" or unicode.to_lower_case(layout.scalemode) == "aspectfill" then
+			scalemode = unicode.to_lower_case(layout.scalemode)
+		else log_error("scalemode值的格式不正确。")
+		end
+		
+		if scalemode == "none" then -- 图片长宽不变，不进行拉伸。
+			result = {
+				layouttype = "image",
+				rect = {
+					x = nil,
+					y = nil,
+					width = (width or data.width) + margin.left + margin.right,
+					height = (height or data.height) + margin.top + margin.bottom
+				},
+				image = data,
+			}
+			minsize = {
+				width = data.width + margin.left + margin.right,
+				height = data.height + margin.top + margin.bottom
+			}
+		elseif scalemode == "fill" then -- 图片拉伸或缩小以适应可用范围，长宽比可能改变。
+			local newimage = register_scaled_image(data, avaliablerect)
+			result = {
+				layouttype = "image",
+				rect = {
+					x = nil,
+					y = nil,
+					width = (width or 0) + margin.left + margin.right,
+					height = (height or 0) + margin.top + margin.bottom
+				},
+				image = newimage,
+			}
+			minsize = {
+				width = margin.left + margin.right,
+				height = margin.top + margin.bottom
+			}
+		elseif scalemode == "aspectfit" then -- 图片拉伸或缩小到最佳大小以完整显示，但不一定充满整个可用范围，保持长宽比不变。
+			local scale = math.min(avaliablerect.width / data.width, avaliablerect.height / data.height)
+			local newimagesize = {
+				width = math.floor(data.width * scale + 0.5),
+				height = math.floor(data.height * scale + 0.5)
+			}
+			local newimage = register_scaled_image(data, newimage)
+			result = {
+				layouttype = "image",
+				rect = {
+					x = nil,
+					y = nil,
+					width = (width or newimagesize.width) + margin.left + margin.right,
+					height = (height or newimagesize.height) + margin.top + margin.bottom
+				},
+				image = newimage,
+			}
+			minsize = {
+				width = newimagesize.width + margin.left + margin.right,
+				height = newimagesize.height + margin.top + margin.bottom
+			}
+		elseif scalemode == "aspectfill" then -- 图片在不改变长宽比的前提下拉伸或缩小，它充满整个可用范围，但可能会被裁剪。
+			local scale = math.max(avaliablerect.width / data.width, avaliablerect.height / data.height)
+			local newimagesize = {
+				width = math.floor(data.width * scale + 0.5),
+				height = math.floor(data.height * scale + 0.5)
+			}
+			local newimage = register_scaled_image(data, newimage)
+			result = {
+				layouttype = "image",
+				rect = {
+					x = nil,
+					y = nil,
+					width = (width or newimagesize.width) + margin.left + margin.right,
+					height = (height or newimagesize.height) + margin.top + margin.bottom
+				},
+				image = newimage,
+			}
+			minsize = {
+				width = newimagesize.width + margin.left + margin.right,
+				height = newimagesize.height + margin.top + margin.bottom
+			}
+		end
 	elseif layout.layouttype == "flow" then -- 流式布局
 		-- 计算横向和纵向间距。
 		local horizontalspacing = tonumber(layout.horizontalspacing) or 0
@@ -537,6 +623,93 @@ local measure_layout = function(line, styles, layout, layer, rect, data)
 			if contentavaliablerect.width <= 0 or contentavaliablerect.height <= 0 then break end
 		end
 	elseif layout.layouttype == "table" then -- 表式布局
+		local tablelength_parse = function(length)
+			if length == nil then
+				return true, { type = "auto" }
+			elseif tonumber(length) ~= nil then
+				return true, { type = "pixel", value = tonumber(length) }
+			elseif type(length) == "string" then
+				if unicode.to_lower_case(length) == "auto" then
+					return true, { type = "auto" }
+				elseif regexutil.find("^\\s*(\\d*\\.\\d*|\\d+)\\s*\\*\\s*$", length) then
+					return true, { type = "weight", value = tonumber(regexutil.match("\\d*\\.\\d*|\\d+", length)[1].str) }
+				end
+			elseif type(length) == "table" then
+				if type(length.type) == "string" then
+					if unicode.to_lower_case(length.type) == "auto" then
+						return true, { type = "auto" }
+					elseif unicode.to_lower_case(length.type) == "pixel" and tonumber(length.value) ~= nil then
+						return true, { type = "pixel", value = tonumber(length.value) }
+					elseif unicode.to_lower_case(length.type) == "weight" and tonumber(length.value) ~= nil then
+						return true, { type = "weight", value = tonumber(length.value) }
+					end
+				end
+			end
+			
+			return false
+		end
+		
+		-- 计算所有行高和列宽。
+		local rows, columns
+		if layout.rows == nil then rows = {}
+		elseif type(layout.rows) == "string" then
+			if util.trim(layout.rows) == "" then
+				rows = {}
+			elseif regexutil.find("^\\s*(auto|(\\d*\\.\\d*|\\d+)\\*?)?(\\s*,\\s*(auto|(\\d*\\.\\d*|\\d+)\\*?)*\\s*$", layout.rows) then
+				rows = {}
+				regexresult = regexutil.find("(?:(^|,)\\s*)(auto|(\\d*\\.\\d*|\\d+)\\*?)(?:\\s*($|,))", layout.margin)
+				for _, match in ipairs(regexresult) do
+					local f, rowheight = tablelength_parse(row)
+					if f then table.insert(rows, rowheight)
+					else log_error("rows值的格式不正确。")
+					end
+				end
+			else log_error("rows值的格式不正确。")
+			end
+		elseif type(layout.rows) == "table" then
+			rows = {}
+			for _, row in layout.rows do
+				local f, rowheight = tablelength_parse(row)
+				if f then table.insert(rows, rowheight)
+				else log_error("rows值的格式不正确。")
+				end
+			end
+		else log_error("rows值的格式不正确。")
+		end
+		if layout.columns == nil then columns = {}
+		elseif type(layout.columns) == "string" then
+			if util.trim(layout.columns) == "" then
+				columns = {}
+			elseif regexutil.find("^\\s*(auto|(\\d*\\.\\d*|\\d+)\\*?)?(\\s*,\\s*(auto|(\\d*\\.\\d*|\\d+)\\*?)*\\s*$", layout.columns) then
+				columns = {}
+				regexresult = regexutil.find("(?:(^|,)\\s*)(auto|(\\d*\\.\\d*|\\d+)\\*?)(?:\\s*($|,))", layout.margin)
+				for _, match in ipairs(regexresult) do
+					local f, columnheight = tablelength_parse(column)
+					if f then table.insert(columns, columnheight)
+					else log_error("columns值的格式不正确。")
+					end
+				end
+			else log_error("columns值的格式不正确。")
+			end
+		elseif type(layout.columns) == "table" then
+			columns = {}
+			for _, column in layout.columns do
+				local f, columnheight = tablelength_parse(column)
+				if f then table.insert(columns, columnheight)
+				else log_error("columns值的格式不正确。")
+				end
+			end
+		else log_error("columns值的格式不正确。")
+		end
+		
+		for _i, content in ipairs(layout) do
+			local row, column, rowspan, columnspan
+			row = tonumber(content["table$row"]) or 1
+			column = tonumber(content["table$column"]) or 1
+			rowspan = tonumber(content["table$rowspan"]) or 1
+			columnspan = tonumber(content["table$columnspan"]) or 1
+			
+		end
 	end
 	
 	result.layer = layer
