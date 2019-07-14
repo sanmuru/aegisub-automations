@@ -3,11 +3,12 @@
 include("karaskel.lua")
 regexutil = require("aegisub.re")
 util = require("aegisub.util")
+interop = require("chatroomeffect.interop")
 
 script_name = "生成聊天室特效字幕"
 script_description = "将原有的文本转化为聊天室特效字幕。"
 script_author = "Sam Lu"
-script_version = "0.1.20190317"
+script_version = "0.1.20190714"
 
 log_fatal = function(msg, ...) aegisub.log(0, msg, ...) end
 log_error = function(msg, ...) aegisub.log(1, msg, ...) end
@@ -24,6 +25,7 @@ local process_main = function(subtitles, selection)
 		for i = 1, #subtitles do table.insert(lines, subtitles[i]) end
 	end
 
+	preprocess_layout()
 	do_layout(lines, actors, layouts)
 end
 
@@ -45,18 +47,40 @@ local do_layout = function(lines, actors, layouts)
 	end
 end
 
---[[ 测算布局
----- 参数：line, styles, layout, layer, rect, data
-	 line: 当前处理的行。
-	 styles: 已定义的所有样式。
-	 layout: 当前处理的布局。
-	 layer: 当前处理的布局的层数。
-	 rect: 容纳布局的最大可用区域，布局应不超过这个范围。
-	 data: 一些必要的数据。
----- 返回：result, minsize
-	 result: 当前布局及所有子布局的table。
-	 minsize: 当前布局及所有子布局的最小需要尺寸。
----- ]]--
+local preprocess_layout = function(layout_content, userdata)
+	local preprocess = function(code, data)
+		local regexresult = regexutil.find("^(?=\\$\\().*(?=\\))$", code)
+		if regexresult then
+			return loadstring("return function(self) return {"..regexresult[1].str.."} end")(data)
+		else return code
+		end
+	end
+
+	for key, value in pairs(layout_content) do
+		if type(value) == "string" then
+			layout_content[key] = value
+		elseif type(value) == "table" then
+			if key == "templates" then -- 若当前键的值是模板定义
+				-- 现在不处理，待展开模板时处理。
+			else
+				preprocess_layout(value, userdata)
+			end
+		end
+	end
+end
+
+--[[ 测算布局。
+---- 参数： line, styles, layout, layer, rect, data
+	line: 当前处理的行。
+	styles: 已定义的所有样式。
+	layout: 当前处理的布局。
+	layer: 当前处理的布局的层数。
+	rect: 容纳布局的最大可用区域，布局应不超过这个范围。
+	data: 一些必要的数据。
+---- 返回： result, minsize
+	result: 当前布局及所有子布局的table。
+	minsize: 当前布局及所有子布局的最小需要尺寸。
+--]]
 local measure_layout = function(line, styles, layout, layer, rect, data)
 	-- 计算margin。
 	local margin
@@ -140,28 +164,28 @@ local measure_layout = function(line, styles, layout, layer, rect, data)
 	-- 计算宽度和高度。
 	local width, height
 	if tonumber(layout.width) == nil then -- 非数字类型值
-		if unicode.to_lower_case(layout.width) == "fill" then width = math.max(0, rect.width - margin.left - margin.right) -- 填充
-		elseif unicode.to_lower_case(layout.width) ~= "auto" then log_error("width值应为数值、fill或auto。")
+		if unicode.to_lower_case(layout.width) == "fill" and rect.width ~= nil then -- 填充
+			width = rect.width - margin.left - margin.right
+		elseif unicode.to_lower_case(layout.width) ~= "auto" then
+			log_error("width值应为数值、fill或auto。")
 		--else -- 自动
 		end
 	else -- 数字类型值
-		if type(layout.width) == "number" then width = layout.width
-		else width = tonumber(layout.width)
-		end
+		width = tonumber(layout.width)
 		if width < 0 then log_error("width值不应小于零。") end
 	end
 	if width < minwidth then width = minwidth
 	elseif maxwidth ~= nil and width > maxwidth then width = maxwidth
 	end
 	if tonumber(layout.height) == nil then -- 非数字类型值
-		if unicode.to_lower_case(layout.height) == "fill" then height = math.max(0, rect.height - margin.top - margint.bottom) -- 填充
-		elseif unicode.to_lower_case(layout.height) ~= "auto" then log_error("height值应为数值、fill或auto。")
+		if unicode.to_lower_case(layout.height) == "fill" and rect.height ~= nil then
+			height = rect.height - margin.top - margint.bottom -- 填充
+		elseif unicode.to_lower_case(layout.height) ~= "auto" then
+			log_error("height值应为数值、fill或auto。")
 		--else -- 自动
 		end
 	else -- 数字类型值
-		if type(layout.height) == "number" then height = layout.height
-		else height = tonumber(layout.height)
-		end
+		height = tonumber(layout.height)
 		if height < 0 then log_error("height值不应小于零。") end
 	end
 	if height < minheight then height = minheight
@@ -185,40 +209,72 @@ local measure_layout = function(line, styles, layout, layer, rect, data)
 		verticalalignment = unicode.to_lower_case(layout.verticalalignment)
 	else log_error("verticalalignment值的格式不正确。")
 	end
-	
+
 	-- 几种条件下布局因为超出显示范围而无意义。
-	if width == 0 or height == 0 or
+	if width <= 0 or height <= 0 -- fill模式下计算得出的宽度和高度不大于零。
+	--[[ or
 		(horizontalalignment == "left" and margin.left >= rect.width) or
 		(horizontalalignment == "right" and margin.right >= rect.width) or
 		(verticalalignment == "top" and margin.top >= rect.height) or
-		(verticalalignment == "bottom" and margin.bottom >= rect.height) then
+		(verticalalignment == "bottom" and margin.bottom >= rect.height)
+	--]] then
 		return nil, { width = 0, height = 0 }
 	end
-	
+
 	local result, minsize
 	-- 规划可用空间范围，若宽度或高度为auto，则使用可用的最大值。
 	local avaliablerect = {
 		x = nil,
 		y = nil,
-		width = width or util.clamp(rect.width - margin.left - margin.right, minwidth, maxwidth),
-		height = height or util.clamp(rect.height - margin.top - margin.bottom, minheight, maxheight)
+		width = nil,
+		height = nil
 	}
-	if horizontalalignment == "left" then avaliablerect.x = rect.x + margin.left
-	elseif horizontalalignment == "center" then
-		avaliablerect.x = rect.x + (rect.width - (avaliablerect.width + margin.left + margin.right)) / 2
-	elseif horizontalalignment == "right" then
-		avaliablerect.x = rect.x + rect.width - (avaliablerect.width + margin.left + margin.right)
+	if width ~= nil then avaliablerect.width = width
+	elseif rect.width == nil then avaliablerect.width = nil
+	else avaliablerect.width = util.clamp(rect.width - margin.left - margin.right, minwidth, maxwidth)
 	end
-	if verticalalignment == "top" then avaliablerect.y = rect.y + margin.top
+	if height ~= nil then avaliablerect.height = height
+	elseif rect.height == nil then avaliablerect.height = nil
+	else avaliablerect.height = height or util.clamp(rect.height - margin.top - margin.bottom, minheight, maxheight)
+	end
+	if avaliablerect.width == nil then avaliablerect.x = 0
+	elseif horizontalalignment == "left" or avaliablerect.width == nil then
+		avaliablerect.x = rect.x + margin.left
+	elseif horizontalalignment == "center" then
+		avaliablerect.x = rect.x + (rect.width - (avaliablerect.width - margin.left + margin.right)) / 2
+	elseif horizontalalignment == "right" then
+		avaliablerect.x = rect.x + rect.width - (avaliablerect.width + margin.right)
+	end
+	if avaliablerect.height == nil then avaliablerect.y = 0
+	elseif verticalalignment == "top" or avaliablerect.height == nil then
+		avaliablerect.y = rect.y + margin.top
 	elseif verticalalignment == "center" then
-		avaliablerect.y = rect.y + (rect.height - (avaliablerect.height + margin.top + margin.bottom)) / 2
+		avaliablerect.y = rect.y + (rect.height - (avaliablerect.height - margin.top + margin.bottom)) / 2
 	elseif verticalalignment == "bottom" then
-		avaliablerect.y = rect.y + rect.height - (avaliablerect.height + margin.top + margin.bottom)
+		avaliablerect.y = rect.y + rect.height - (avaliablerect.height + margin.bottom)
 	end
 	
 	if layout.layouttype == "text" then -- 文本布局
-		local style = style_parse(styles, layout.style) -- 获取文本使用的样式。
-		local wrappedtextminsize, wrappedtext = text_layout(style, avaliablerect, data.text) -- 进行文本布局。
+		-- 获取文本使用的样式。
+		local style = style_parse(styles, layout.style)
+
+		-- 计算文本换行方式
+		local wordwrap
+		if layout.wordwrap == nil then wordwrap = "none"
+		elseif unicode.to_lower_case(layout.wordwrap) == "none" or
+			unicode.to_lower_case(layout.wordwrap) == "hard" or
+			unicode.to_lower_case(layout.wordwrap) == "soft" then
+			wordwrap = unicode.to_lower_case(layout.wordwrap)
+		else log_error("wordwrap值的格式不正确。")
+		end
+
+		-- 获取文本。
+		local text
+		if type(layout.text) == string then text = layout.text
+		else text = ""
+		end
+		-- 进行文本布局。
+		local wrappedtextminsize, wrappedtext = text_layout(style, wordwrap, avaliablerect, text)
 		
 		-- 计算文本的横向和纵向对齐。
 		local texthorizontalalignment, textverticalalignment
@@ -242,56 +298,67 @@ local measure_layout = function(line, styles, layout, layer, rect, data)
 			rect = {
 				x = nil,
 				y = nil,
-				width = (width or wrappedtextminsize.width) + margin.left + margin.right,
-				height = (height or wrappedtextminsize.height) + margin.top + margin.bottom
+				width = wrappedtextminsize.width,
+				height = wrappedtextminsize.height
 			},
-			texthorizontalalignment = unicode.to_lower_case(texthorizontalalignment),
-			textverticalalignment = unicode.to_lower_case(textverticalalignment),
-			text = content,
+			texthorizontalalignment = texthorizontalalignment,
+			textverticalalignment = textverticalalignment,
+			text = wrappedtext
 		}
 		minsize = {
-			width = wrappedtextminsize.width + margin.left + margin.right,
-			height = wrappedtextminsize.height + margin.top + margin.bottom
+			width = wrappedtextminsize.width,
+			height = wrappedtextminsize.height
 		}
 	elseif layout.layouttype == "image" then -- 图像布局
 		-- 计算图像的缩放模式。
 		local scalemode
-		if layout.scalemode == nil then scalemode = "none"
-		elseif unicode.to_lower_case(layout.scalemode) == "none" or unicode.to_lower_case(layout.scalemode) == "fill" or unicode.to_lower_case(layout.scalemode) == "aspectfit" or unicode.to_lower_case(layout.scalemode) == "aspectfill" then
+		if layout.scalemode == nil then scalemode = "aspectfit"
+		elseif unicode.to_lower_case(layout.scalemode) == "none" or
+			unicode.to_lower_case(layout.scalemode) == "fill" or
+			unicode.to_lower_case(layout.scalemode) == "aspectfit" or
+			unicode.to_lower_case(layout.scalemode) == "aspectfill" then
 			scalemode = unicode.to_lower_case(layout.scalemode)
 		else log_error("scalemode值的格式不正确。")
 		end
 		
+		-- 获取图片信息
+		local image = image_parse(layout.image)
+
 		if scalemode == "none" then -- 图片长宽不变，不进行拉伸。
+			local newsize = {
+				width = image.rect.width,
+				height = image.rect.height
+			}
+			image.scaleto = newsize
 			result = {
 				layouttype = "image",
 				rect = {
 					x = nil,
 					y = nil,
-					width = (width or data.width) + margin.left + margin.right,
-					height = (height or data.height) + margin.top + margin.bottom
+					width = newsize.width,
+					height = newsize.height
 				},
-				image = data,
+				image = image,
 			}
-			minsize = {
-				width = data.width + margin.left + margin.right,
-				height = data.height + margin.top + margin.bottom
-			}
+			minsize = newsize
 		elseif scalemode == "fill" then -- 图片拉伸或缩小以适应可用范围，长宽比可能改变。
-			local newimage = register_scaled_image(data, avaliablerect)
+			local newsize = {
+				width = avaliablerect.width or image.rect.width,
+				height = avaliablerect.height or image.rect.height
+			}
 			result = {
 				layouttype = "image",
 				rect = {
 					x = nil,
 					y = nil,
-					width = (width or 0) + margin.left + margin.right,
-					height = (height or 0) + margin.top + margin.bottom
+					width = width or image.rect.width,
+					height = height or image.rect.height
 				},
 				image = newimage,
 			}
 			minsize = {
-				width = margin.left + margin.right,
-				height = margin.top + margin.bottom
+				width = width or image.rect.width,
+				height = height or image.rect.height
 			}
 		elseif scalemode == "aspectfit" then -- 图片拉伸或缩小到最佳大小以完整显示，但不一定充满整个可用范围，保持长宽比不变。
 			local scale = math.min(avaliablerect.width / data.width, avaliablerect.height / data.height)
@@ -386,7 +453,7 @@ local measure_layout = function(line, styles, layout, layer, rect, data)
 			contentverticalalignment = unicode.to_lower_case(layout.contentverticalalignment)
 		else log_error("contentverticalalignment值的格式不正确。")
 		end
-		]]--
+		--]]
 		
 		-- 进行布局，将所有内部布局转化为以行为单元的表。
 		local flowlines = {}
@@ -712,82 +779,213 @@ local measure_layout = function(line, styles, layout, layer, rect, data)
 		end
 	end
 	
+	if result.rect.width < minwidth then result.rect.width = minwidth end
+	if result.rect.height < minheight then result.rect.height = minheight end
+	result.clip = {
+		rects = {},
+		intersect = function(self, rect)
+			local newrects = {}
+			for _, r in ipairs(self.rects) do
+				if r.x + r.width > rect.x and rect.x + rect.width > r.x and
+					r.y + r.height > rect.y and rect.y + rect.height > r.y then
+					local newrect = {
+						x = math.max(r.x, rect.x),
+						y = math.max(r.y, rect.y),
+						width = math.min(r.x + r.width, rect.x + rect.width) - math.max(r.x, rect.x),
+						height = math.min(r.y + r.height, rect.y + rect.height) - math.max(r.y, rect.y)
+					}
+					for index = #newrects, 1, -1 do
+						local _r = newrects[index]
+						if _r.x >= newrect.x and _r.x + _r.width <= newrect.x + newrect.width and
+							_r.y >= newrect.y and _r.y + _r.height <= newrect.y + newrect.height then
+							table.remove(newrects, index)
+						end
+					end
+					table.insert(newrects, newrect)
+				end
+			end
+			self.rects = newrects
+		end,
+		union = function(self, rect)
+			local newrects = {}
+			for index = 1, #self.rects do
+				local _r = self.rects[index]
+				if _r.x <= rect.x and _r.x + _r.width >= rect.x + rect.width and
+					_r.y <= rect.y and _r.y + _r.height >= rect.y + rect.height then
+					table.insert(newrects, _r)
+				elseif _r.x > rect.x and _r.x + _r.width < rect.x + rect.width and
+					_r.y > rect.y and _r.y + _r.height < rect.y + rect.height then
+					table.insert(rect)
+				else
+					table.insert(newrects, _r)
+					table.insert(rect)
+				end
+			end
+			self.rects = newrects
+		end
+	}
+	if (maxwidth ~= nil and result.rect.width > maxwidth) or
+		(maxheight ~= nil and result.rect.height > maxheight) then
+		local cliprect = {
+			width = math.min(result.rect.width, maxwidth),
+			height = math.min(result.rect.height, maxheight)
+		}
+		if horizontalalignment == "left" then cliprect.x = result.rect.x
+		elseif horizontalalignment == "center" then cliprect.x = result.rect.x + (result.rect.width - cliprect.width) / 2
+		elseif horizontalalignment == "right" then cliprect.x = result.rect.x + result.rect.width - cliprect.width
+		end
+		if verticalalignment == "top" then cliprect.y = result.rect.y
+		elseif verticalalignment == "center" then cliprect.y = result.rect.y + (result.rect.height - cliprect.height) / 2
+		elseif verticalalignment == "bottom" then cliprect.y = result.rect.y + result.rect.height - cliprect.height
+		end
+		result.clip:union(cliprect)
+	end
+	result.margin = margin
 	result.layer = layer
 	result.horizontalalignment = horizontalalignment
 	result.verticalalignment = verticalalignment
-	result.move = function(self, offsetx, offsety)
-		for _, content in ipairs(self) do
-			content.rect.x = content.rect.x + offsetx
-			content.rect.y = content.rext.y + offsety
-			content:move(offsetx, offsety)
-		end
-	end
 end
 
-local style_parse = function(styles, style)
+local style_parse = function(styles, style, paramname)
 	if type(style) == string then
-		return styles[style]
+		local existstyle = styles[style]
+		if existstyle == nil then log_error("未定义名为\""..style.."\"的样式。") end
+		return existstyle
 	elseif type(style) == "table" then
-		local override = util.copy(style_parse(style.override))
-		return override
-	end
-end
-
-local text_layout = function(style, size, data)
-	regexresult = regexutil.match("\\s+(?=\\S|$)|[\\dA-Za-z]+(?=[^\\dA-Za-z]|$)|\\b.+?\\b|\\S+(?=\\s|$)", data)
-	
-	local linebuffer = { length = 0 }
-	local spanbuffer = {}
-	for _, match in ipairs(regexresult) do
-		local wrappable
-		if re.find("^(\\s+|[\\dA-Za-z]+)$", match.str) then wrappable = false
-		else wrappable = true
-		end
-		
-		table.insert(spanbuffer, match.str)
-		while true do
-			local w, h, d, el = aegisub.text_extents(style, table.concat(spanbuffer))
-			if w <= size.width then break
-			elseif wrappable or #spanbuffer == 1 then
-				table.remove(spanbuffer, #spanbuffer)
-				
-				for c in unicode.chars(match.str) do
-					table.insert(spanbuffer, c)
-					local w, h, d, el = aegisub.text_extents(style, table.concat(spanbuffer))
-					if #spanbuffer > 1 and w > size.width then
-						table.remove(spanbuffer, #spanbuffer)
-						spanbuffer.length, spanbuffer.height = aegisub.text_extents(style, table.concat(spanbuffer))
-						table.insert(linebuffer, table.concat(spanbuffer))
-						linebuffer.length = math.max(linebuffer.length, spanbuffer.length)
-						linebuffer.height = linebuffer.height + spanbuffer.height
-						spanbuffer = {}
-						table.insert(spanbuffer, c)
-					end
+		newstyle = util.copy(style)
+		newstyle.override = nil -- 清除继承信息。
+		if newstyle.override ~= nil then
+			-- 获取继承树上层样式节点。
+			local override = style_parse(newstyle.override, "override")
+			-- 检查上层节点的每个键。
+			for key, value in pairs(override) do
+				if key ~= "override" then -- 不继承override键。
+					newstyle[key] = newstyle[key] or override[key] -- 进行值的继承。
 				end
-				if #spanbuffer > 1 then
-					spanbuffer = { table.concat(spanbuffer) }
-				end
-			else
-				table.remove(spanbuffer, #spanbuffer)
-				spanbuffer.length, spanbuffer.height = aegisub.text_extents(style, table.concat(spanbuffer))
-				table.insert(linebuffer, table.concat(spanbuffer))
-				linebuffer.length = math.max(linebuffer.length, spanbuffer.length)
-				linebuffer.height = linebuffer.height + spanbuffer.height
-				spanbuffer = {}
-				table.insert(spanbuffer, match.str)
 			end
 		end
+		return newstyle
+	else log_error((paramname or "style").."值的格式不正确。")
 	end
-	if #spanbuffer ~= 0 then
-		spanbuffer.length, spanbuffer.height = aegisub.text_extents(style, table.concat(spanbuffer))
-		table.insert(linebuffer, table.concat(spanbuffer))
-		linebuffer.length = math.max(linebuffer.length, spanbuffer.length)
-		linebuffer.height = linebuffer.height + spanbuffer.height
-		spanbuffer = {}
+end
+
+--[[ 测算文本布局
+---- 参数： style, wordwrap, size, text
+	style: 文本使用的。
+	wordwrap: 文本的换行模式。
+	size: 用于布局的预留范围。
+	text: 需要测算的文本。
+---- 返回： minsize, wrappedtext
+	 minsize: 布局后文本占用的矩形的最小范围。
+	 wrappedtext: 布局后的文本。
+--]]
+local text_layout = function(style, wordwrap, size, text)
+	local rawlines = regexutil.split(text, "\\r?\\n")
+	local linebuffer = { length = 0 }
+	for _, rawline in ipairs(rawlines) do
+		if rawline == "" then -- 若为空行，则高度为样式的字体大小的一半。
+			table.insert(linebuffer, rawline)
+			linebuffer.height = linebuffer.height + style.fontsize / 2
+		else
+			if wordwrap == "none" then -- 不换行
+				table.insert(linebuffer, rawline)
+				local w, h, d, el = aegisub.text_extents(style, rawline)
+				linebuffer.length = math.max(linebuffer.length, w)
+				linebuffer.height = linebuffer.height + h
+			else
+				regexresult = regexutil.match("\\s+(?=\\S|$)|[\\dA-Za-z]+(?=[^\\dA-Za-z]|$)|\\b.+?\\b|\\S+(?=\\s|$)", rawline)
+				
+				local spanbuffer = {}
+				for _, match in ipairs(regexresult) do
+					local wrappable
+					if wordwrap == "hard" then -- 硬换行
+						wrappable = true -- 所有文本段均能逐字换行。
+					elseif wordwrap == "soft" then -- 软换行
+						if regexutil.find("^(\\s+|[\\dA-Za-z]+)$", match.str) then wrappable = false -- 仅数字和字母相连的组合不能逐字换行。
+						else wrappable = true -- 其余组合均能逐字换行。
+						end
+					end
+					
+					table.insert(spanbuffer, match.str)
+					while true do
+						local w, h, d, el = aegisub.text_extents(style, table.concat(spanbuffer))
+						if size.width == nil or w <= size.width then break
+						elseif wrappable or #spanbuffer == 1 then
+							table.remove(spanbuffer, #spanbuffer)
+							
+							for c in unicode.chars(match.str) do
+								table.insert(spanbuffer, c)
+								local w, h, d, el = aegisub.text_extents(style, table.concat(spanbuffer))
+								if #spanbuffer > 1 and size.width ~= nil and w > size.width then
+									table.remove(spanbuffer, #spanbuffer)
+									spanbuffer.length, spanbuffer.height = aegisub.text_extents(style, table.concat(spanbuffer))
+									table.insert(linebuffer, table.concat(spanbuffer))
+									linebuffer.length = math.max(linebuffer.length, spanbuffer.length)
+									linebuffer.height = linebuffer.height + spanbuffer.height
+									spanbuffer = {}
+									table.insert(spanbuffer, c)
+								end
+							end
+							if #spanbuffer > 1 then
+								spanbuffer = { table.concat(spanbuffer) }
+							end
+						else
+							table.remove(spanbuffer, #spanbuffer)
+							spanbuffer.length, spanbuffer.height = aegisub.text_extents(style, table.concat(spanbuffer))
+							table.insert(linebuffer, table.concat(spanbuffer))
+							linebuffer.length = math.max(linebuffer.length, spanbuffer.length)
+							linebuffer.height = linebuffer.height + spanbuffer.height
+							spanbuffer = {}
+							table.insert(spanbuffer, match.str)
+						end
+					end
+				end
+				if #spanbuffer ~= 0 then
+					spanbuffer.length, spanbuffer.height = aegisub.text_extents(style, table.concat(spanbuffer))
+					table.insert(linebuffer, table.concat(spanbuffer))
+					linebuffer.length = math.max(linebuffer.length, spanbuffer.length)
+					linebuffer.height = linebuffer.height + spanbuffer.height
+					spanbuffer = {}
+				end
+			end
+		end
 	end
 	
 	local wrappedtext = table.concat(linebuffer, "\\N")
 	return { width = linebuffer.length, height = linebuffer.height }, wrappedtext
 end
+
+local image_parse = function(image)
+	if image == nil then return nil
+	elseif type(image) == "string" then
+		local info = interop.image.getinfo[image]
+		return {
+			source = info,
+			rect = {
+				x = 0,
+				y = 0,
+				width = info.width,
+				height = info.height
+			}
+		}
+	elseif type(image) == "table" then
+		if type(image.source) == "string" then
+			local info = interop.image.getinfo[image.source]
+			return {
+				source = info,
+				rect = {
+					x = tonumber(image.x) or 0,
+					y = tonumber(image.y) or 0,
+					width = tonumber(image.width) or info.width,
+					height = tonumber(image.height) or info.height
+				}
+			}
+		else log_error("source值的格式不正确。")
+		end
+	end
+
+	log_error("image值的格式不正确。")
+end
+
 
 aegisub.register_macro(script_name, script_description, process_main)
