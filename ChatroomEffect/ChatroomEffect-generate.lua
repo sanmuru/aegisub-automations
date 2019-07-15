@@ -324,85 +324,42 @@ local measure_layout = function(line, styles, layout, layer, rect, data)
 		-- 获取图片信息
 		local image = image_parse(layout.image)
 
+		local newimagesize
 		if scalemode == "none" then -- 图片长宽不变，不进行拉伸。
-			local newsize = {
+			newimagesize = {
 				width = image.rect.width,
 				height = image.rect.height
 			}
-			image.scaleto = newsize
-			result = {
-				layouttype = "image",
-				rect = {
-					x = nil,
-					y = nil,
-					width = newsize.width,
-					height = newsize.height
-				},
-				image = image,
-			}
-			minsize = newsize
 		elseif scalemode == "fill" then -- 图片拉伸或缩小以适应可用范围，长宽比可能改变。
-			local newsize = {
+			newimagesize = {
 				width = avaliablerect.width or image.rect.width,
 				height = avaliablerect.height or image.rect.height
 			}
-			result = {
-				layouttype = "image",
-				rect = {
-					x = nil,
-					y = nil,
-					width = width or image.rect.width,
-					height = height or image.rect.height
-				},
-				image = newimage,
-			}
-			minsize = {
-				width = width or image.rect.width,
-				height = height or image.rect.height
-			}
 		elseif scalemode == "aspectfit" then -- 图片拉伸或缩小到最佳大小以完整显示，但不一定充满整个可用范围，保持长宽比不变。
-			local scale = math.min(avaliablerect.width / data.width, avaliablerect.height / data.height)
-			local newimagesize = {
-				width = math.floor(data.width * scale + 0.5),
-				height = math.floor(data.height * scale + 0.5)
-			}
-			local newimage = register_scaled_image(data, newimage)
-			result = {
-				layouttype = "image",
-				rect = {
-					x = nil,
-					y = nil,
-					width = (width or newimagesize.width) + margin.left + margin.right,
-					height = (height or newimagesize.height) + margin.top + margin.bottom
-				},
-				image = newimage,
-			}
-			minsize = {
-				width = newimagesize.width + margin.left + margin.right,
-				height = newimagesize.height + margin.top + margin.bottom
+			local scale = math.min((avaliablerect.width or image.rect.width) / image.rect.width, (avaliablerect.height or image.rect.height) / image.rect.height)
+			newimagesize = {
+				width = math.floor(image.rect.width * scale + 0.5),
+				height = math.floor(image.rect.height * scale + 0.5)
 			}
 		elseif scalemode == "aspectfill" then -- 图片在不改变长宽比的前提下拉伸或缩小，它充满整个可用范围，但可能会被裁剪。
-			local scale = math.max(avaliablerect.width / data.width, avaliablerect.height / data.height)
-			local newimagesize = {
-				width = math.floor(data.width * scale + 0.5),
-				height = math.floor(data.height * scale + 0.5)
-			}
-			local newimage = register_scaled_image(data, newimage)
-			result = {
-				layouttype = "image",
-				rect = {
-					x = nil,
-					y = nil,
-					width = (width or newimagesize.width) + margin.left + margin.right,
-					height = (height or newimagesize.height) + margin.top + margin.bottom
-				},
-				image = newimage,
-			}
-			minsize = {
-				width = newimagesize.width + margin.left + margin.right,
-				height = newimagesize.height + margin.top + margin.bottom
+			local scale = math.max((avaliablerect.width or image.rect.width) / image.rect.width, (avaliablerect.height or image.rect.height) / image.rect.height)
+			newimagesize = {
+				width = math.floor(image.rect.width * scale + 0.5),
+				height = math.floor(image.rect.height * scale + 0.5)
 			}
 		end
+		image.scaleto = newimagesize
+		result = {
+			layouttype = "image",
+			rect = {
+				x = nil,
+				y = nil,
+				width = newimagesize.width,
+				height = newimagesize.height
+			},
+			image = image,
+		}
+		minsize = newimagesize
 	elseif layout.layouttype == "flow" then -- 流式布局
 		-- 计算横向和纵向间距。
 		local horizontalspacing = tonumber(layout.horizontalspacing) or 0
