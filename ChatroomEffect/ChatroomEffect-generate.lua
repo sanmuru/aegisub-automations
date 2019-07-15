@@ -30,13 +30,12 @@ local process_main = function(subtitles, selection)
 end
 
 local do_layout = function(lines, actors, layouts)
-	local xres, yres
-	meta = karaskel.collect_head(subtitles, generate_furigana)
-	if meta.res_x == nil or meta.res_y == nil then
-		xres, yres = aegisub.video_size()
-		if xres == nil or yres == nil then
-			aegisub.log()
-
+	local meta = karaskel.collect_head(subtitles, generate_furigana)
+	local res_x, res_y = meta.res_x, meta.res_y
+	if res_x == nil or res_y == nil then
+		res_x, res_y = aegisub.video_size()
+		if res_x == nil or res_y == nil then
+			log_error("无法获取显示范围的宽度和高度。")
 		end
 	end
 

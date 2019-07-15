@@ -2,8 +2,8 @@
 
 unicode = require("aegisub.unicode")
 regexutil = require("aegisub.re")
-util = require 'aegisub.util'
-lfs = require 'lfs'
+util = require("aegisub.util")
+lfs = require("lfs")
 
 interop_version = "0.1.20190714"
 
@@ -101,7 +101,7 @@ interop.image.getinfo = function(...)
 			end,
 			function(err)
 				os.remove(tmpfilepath)
-				print(err)
+				print(debug.traceback())
 			end
 		)
 		if not errorstate then error("error ocured in 'execute'") end
