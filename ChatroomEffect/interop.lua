@@ -1,9 +1,9 @@
 ﻿-- Copyright (c) 2019, Sam Lu
 
-unicode = require("aegisub.unicode")
-regexutil = require("aegisub.re")
-util = require("aegisub.util")
-lfs = require("lfs")
+local unicode = require("aegisub.unicode")
+local regexutil = require("aegisub.re")
+local util = require("aegisub.util")
+local lfs = require("lfs")
 
 interop_version = "0.1.20190714"
 

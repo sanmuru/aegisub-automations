@@ -1,55 +1,56 @@
-local layoutdef = {}
+local logic = {}
 
-layoutdef.type = "text"
-layoutdef.priority = 100
+logic.type = "text"
+logic.priority = 100
 
-layoutdef.measure_minsize = function(layout, size, data)
-	-- 获取文本使用的样式。
-	local style = style_parse(data.styles, layout.style)
-
-	-- 计算文本换行方式
-	local wordwrap
-	if layout.wordwrap == nil then wordwrap = "none"
-	elseif unicode.to_lower_case(layout.wordwrap) == "none" or
-		unicode.to_lower_case(layout.wordwrap) == "hard" or
-		unicode.to_lower_case(layout.wordwrap) == "soft" then
-		wordwrap = unicode.to_lower_case(layout.wordwrap)
-	else log_error("wordwrap值的格式不正确。")
-	end
-
-	-- 获取文本。
-	local text
-	if type(layout.text) == string then text = layout.text
-	else text = ""
-	end
+logic.measure_minsize = function(layout, size, meta, data)
+	-- 获取布局的元数据。
+	meta = parse_meta(layout, size, meta, data)
+	
 	-- 进行文本布局。
-	local wrappedtextminsize, wrappedtext = text_layout(style, wordwrap, size, text)
+	local wrappedtextminsize, wrappedtext = text_layout(meta, size)
 	
 	return wrappedtextminsize
 end
 
-layoutdef.do_layout = function(layout, parentlayer, rect, data)
-	-- 获取文本使用的样式。
-	local style = style_parse(data.styles, layout.style)
+logic.do_layout = function(layout, rect, meta, data)
+	-- 获取布局的元数据。
+	meta = parse_meta(layout, size, meta, data)
 	
+	-- 进行文本布局。
+	local wrappedtextminsize, wrappedtext = text_layout(meta, size)
+	
+	result = {
+		layouttype = "text",
+		rect = {
+			x = nil,
+			y = nil,
+			width = wrappedtextminsize.width,
+			height = wrappedtextminsize.height
+		},
+		texthorizontalalignment = texthorizontalalignment,
+		textverticalalignment = textverticalalignment,
+		text = wrappedtext
+	}
+	
+	return result
+end
+
+local parse_meta = function(layout, size, data, meta)
+	meta = util.copy(meta or {})
+	
+	-- 获取文本使用的样式。
+	meta.style = style_parse(data.styles, layout.style)
+
 	-- 计算文本换行方式
-	local wordwrap
-	if layout.wordwrap == nil then wordwrap = "none"
+	if layout.wordwrap == nil then meta.wordwrap = "none"
 	elseif unicode.to_lower_case(layout.wordwrap) == "none" or
 		unicode.to_lower_case(layout.wordwrap) == "hard" or
 		unicode.to_lower_case(layout.wordwrap) == "soft" then
-		wordwrap = unicode.to_lower_case(layout.wordwrap)
+		meta.wordwrap = unicode.to_lower_case(layout.wordwrap)
 	else log_error("wordwrap值的格式不正确。")
 	end
-
-	-- 获取文本。
-	local text
-	if type(layout.text) == string then text = layout.text
-	else text = ""
-	end
-	-- 进行文本布局。
-	local wrappedtextminsize, wrappedtext = text_layout(style, wordwrap, rect, text)
-		
+	
 	-- 计算文本的横向和纵向对齐。
 	local texthorizontalalignment, textverticalalignment
 	if layout.texthorizontalalignment == nil then texthorizontalalignment = "left"
@@ -66,42 +67,37 @@ layoutdef.do_layout = function(layout, parentlayer, rect, data)
 		textverticalalignment = unicode.to_lower_case(layout.textverticalalignment)
 	else log_error("textverticalalignment值的格式不正确。")
 	end
-		
-	result = {
-		layouttype = "text",
-		rect = {
-			x = nil,
-			y = nil,
-			width = wrappedtextminsize.width,
-			height = wrappedtextminsize.height
-		},
-		texthorizontalalignment = texthorizontalalignment,
-		textverticalalignment = textverticalalignment,
-		text = wrappedtext
-	}
+	
+	-- 获取文本。
+	if type(layout.text) == string then metatext = layout.text
+	else metatext = ""
+	end
+	
+	return meta
 end
 
---[[ 测算文本布局
----- 参数： style, wordwrap, size, text
-	style: 文本使用的。
-	wordwrap: 文本的换行模式。
+--[[ 进行文本布局
+---- 参数： meta, size, text
+	meta: 解释布局得到的元数据。
 	size: 用于布局的预留范围。
-	text: 需要测算的文本。
+	text: 需要测算的文本，若为nil时则取meta.text。
 ---- 返回： minsize, wrappedtext
 	 minsize: 布局后文本占用的矩形的最小范围。
 	 wrappedtext: 布局后的文本。
 --]]
-local text_layout = function(style, wordwrap, size, text)
+local text_layout = function(meta, size, text)
+	text = text or meta.text
+
 	local rawlines = regexutil.split(text, "\\r?\\n")
 	local linebuffer = { length = 0 }
 	for _, rawline in ipairs(rawlines) do
 		if rawline == "" then -- 若为空行，则高度为样式的字体大小的一半。
 			table.insert(linebuffer, rawline)
-			linebuffer.height = linebuffer.height + style.fontsize / 2
+			linebuffer.height = linebuffer.height + meta.style.fontsize / 2
 		else
-			if wordwrap == "none" then -- 不换行
+			if meta.wordwrap == "none" then -- 不换行
 				table.insert(linebuffer, rawline)
-				local w, h, d, el = aegisub.text_extents(style, rawline)
+				local w, h, d, el = aegisub.text_extents(meta.style, rawline)
 				linebuffer.length = math.max(linebuffer.length, w)
 				linebuffer.height = linebuffer.height + h
 			else
@@ -110,9 +106,9 @@ local text_layout = function(style, wordwrap, size, text)
 				local spanbuffer = {}
 				for _, match in ipairs(regexresult) do
 					local wrappable
-					if wordwrap == "hard" then -- 硬换行
+					if meta.wordwrap == "hard" then -- 硬换行
 						wrappable = true -- 所有文本段均能逐字换行。
-					elseif wordwrap == "soft" then -- 软换行
+					elseif meta.wordwrap == "soft" then -- 软换行
 						if regexutil.find("^(\\s+|[\\dA-Za-z]+)$", match.str) then wrappable = false -- 仅数字和字母相连的组合不能逐字换行。
 						else wrappable = true -- 其余组合均能逐字换行。
 						end
@@ -120,14 +116,14 @@ local text_layout = function(style, wordwrap, size, text)
 					
 					table.insert(spanbuffer, match.str)
 					while true do
-						local w, h, d, el = aegisub.text_extents(style, table.concat(spanbuffer))
+						local w, h, d, el = aegisub.text_extents(meta.style, table.concat(spanbuffer))
 						if size.width == nil or w <= size.width then break
 						elseif wrappable or #spanbuffer == 1 then
 							table.remove(spanbuffer, #spanbuffer)
 							
 							for c in unicode.chars(match.str) do
 								table.insert(spanbuffer, c)
-								local w, h, d, el = aegisub.text_extents(style, table.concat(spanbuffer))
+								local w, h, d, el = aegisub.text_extents(meta.style, table.concat(spanbuffer))
 								if #spanbuffer > 1 and size.width ~= nil and w > size.width then
 									table.remove(spanbuffer, #spanbuffer)
 									spanbuffer.length, spanbuffer.height = aegisub.text_extents(style, table.concat(spanbuffer))
