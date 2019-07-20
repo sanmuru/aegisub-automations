@@ -1,3 +1,5 @@
+local layoututil = require("chatroomeffect.layoututil")
+
 local logic = {}
 
 logic.type = "stack"
@@ -7,122 +9,73 @@ logic.measure_minsize = function(layout, size, meta, data)
 	-- 获取布局的元数据。
 	meta = parse_meta(layout, size, meta, data)
 	
-	local contentavaliablerectsize
+	local stackline = stack_layout(meta, size)
+
 	if meta.orientation == "down" or meta.orientation == "up" then
-		contentavaliablerectsize = {
-			width = size.width,
-			height = nil
+		return {
+			width = size.width or stackline.width,
+			height = size.height or stackline.length
 		}
 	elseif meta.orientation == "right" or meta.orientation == "left" then
-		contentavaliablerectsize = {
-			width = nil,
-			height = size.height
+		return {
+			width = size.width or stackline.length,
+			height = size.height or stackline.width
 		}
 	end
-	local maxwidth, maxheight = 0, 0
-	for index, contentlayout in ipairs(layout) do
-		local contentminsize = layoututil.measure_minsize(contentlayout, contentavaliablerectsize, data)
-		if meta.orientation == "down" or meta.orientation == "up" then
-			maxwidth = math.max(maxwidth, contentminsize.width)
-			maxheight = maxheight + contentminsize.height
-		elseif meta.orientation == "right" or meta.orientation == "left" then
-			maxwidth = maxwidth + contentminsize.width
-			maxheight = math.max(maxheight, contentminsize.height)
-		end
-	end
-	
-	return {
-		width = size.width or maxwidth,
-		height = size.height or maxheight
-	}
 end
 
 logic.do_layout = function(layout, rect, meta, data, callback)
 	-- 获取布局的元数据。
 	meta = parse_meta(layout, size, meta, data)
 	
-	local contentavaliablerectsize
-	if meta.orientation == "down" or meta.orientation == "up" then
-		contentavaliablerectsize = {
-			width = size.width,
-			height = nil
-		}
-	elseif meta.orientation == "right" or meta.orientation == "left" then
-		contentavaliablerectsize = {
-			width = nil,
-			height = size.height
-		}
-	end
-	local maxlength = 0
-	for index, contentlayout in ipairs(layout) do
-		local contentminsize = layoututil.measure_minsize(contentlayout, contentavaliablerectsize, data)
-		local contentavaliablerect = {
+	local stackline = stack_layout(meta, size)
+
+	result = {
+		layouttype = "stack",
+		rect = {
 			x = nil,
 			y = nil,
-			width = math.max(contentavaliablerectsize.width or contentminsize.width, contentminsize.width),
-			height = math.max(contentavaliablerectsize.height or contentminsize.height, contentminsize.height)
+			width = size.width,
+			height = size.height
 		}
-		local contentresult = layoututil.do_layout(contentlayer, meta.layer, contentavaliablerect, data)
-		if meta.orientation == "down" or meta.orientation == "up" then
-			maxwidth = math.max(maxwidth, contentminsize.width)
-			maxheight = maxheight + contentminsize.height
-		elseif meta.orientation == "right" or meta.orientation == "left" then
-			maxwidth = maxwidth + contentminsize.width
-			maxheight = math.max(maxheight, contentminsize.height)
-		end
-	end
-	
-	for index, contentlayout in ipairs(layout) do
-		local contentminsize = layout.measure_minsize(contentlayout, contentavaliablerect, data)
+	}
+
+	for _, content in ipairs(stackline) do
+		local contentrect
 		if layout.orientation == "down" then
 			local contentrect = {
-				x = contentavaliablerect.x,
-				y = contentavaliablerect.y,
-				width = contentavaliablerect.width,
-				height = contentminsize.height
+				x = rect.x,
+				y = rect.y + content.position,
+				width = stackline.width,
+				height = content.length
 			}
-			local contentresult, contentminsize = measure_layout(line, styles, contentlayout, contentlayer, contentrect, data[index])
-			table.insert(result, contentresult)
-				
-			contentavaliablerect.y = contentavaliablerect.y + contentrect.height
-			contentavaliablerect.height = contentavaliablerect.height - contentrect.height
+			contentresult = layoututil.do_layout(contentlayout, meta.layer, contentrect, data)
 		elseif layout.orientation == "up" then
 			local contentrect = {
-				x = contentavaliablerect.x,
-				y = contentavaliablerect.height - contentminsize.height,
-				width = contentavaliablerect.width,
-				height = contentminsize.height
+				x = rect.x,
+				y = rect.y + rect.height - content.position - stackline.length,
+				width = stackline.width,
+				height = content.length
 			}
-			local contentresult, contentminsize = measure_layout(line, styles, contentlayout, contentlayer, contentrect, data[index])
-			table.insert(result, contentresult)
-				
-			contentavaliablerect.height = contentavaliablerect.height - contentrect.height
+			contentresult = layoututil.do_layout(contentlayout, meta.layer, contentrect, data)
 		elseif layout.orientation == "right" then
 			local contentrect = {
-				x = contentavaliablerect.x,
-				y = contentavaliablerect.y,
-				width = contentminsize.width,
-				height = contentavaliablerect.height
+				x = rect.x + content.position,
+				y = rect.y,
+				width = content.length,
+				height = stackline.width
 			}
-			local contentresult, contentminsize = measure_layout(line, styles, contentlayout, contentlayer, contentrect, data[index])
-			table.insert(result, contentresult)
-				
-			contentavaliablerect.x = contentavaliablerect.x + contentrect.width
-			contentavaliablerect.width = contentavaliablerect.width - contentrect.width
+			contentresult = layoututil.do_layout(contentlayout, meta.layer, contentrect, data)
 		elseif layout.orientation == "left" then
 			local contentrect = {
-				x = contentavaliablerect.width - contentminsize.width,
-				y = contentavaliablerect.y,
-				width = contentminsize.width,
-				height = contentavaliablerect.height
+				x = rect.x + rect.width - content.position - stackline.length,
+				y = rect.y,
+				width = content.length,
+				height = stackline.width
 			}
-			local contentresult, contentminsize = measure_layout(line, styles, contentlayout, contentlayer, contentrect, data[index])
-			table.insert(result, contentresult)
-				
-			contentavaliablerect.width = contentavaliablerect.width - contentrect.width
+			contentresult = layoututil.do_layout(contentlayout, meta.layer, contentrect, data)
 		end
-			
-		if contentavaliablerect.width <= 0 or contentavaliablerect.height <= 0 then break end
+		table.insert(result, contentresult)
 	end
 end
 
@@ -140,4 +93,36 @@ local parse_meta = function(layout, size, data, meta)
 	end
 	
 	return meta
+end
+
+local stack_layout = function(meta, size)
+	local stackline = {}
+	
+	local contentavaliablerectsize
+	if meta.orientation == "down" or meta.orientation == "up" then
+		contentavaliablerectsize = {
+			width = size.width,
+			height = nil
+		}
+	elseif meta.orientation == "right" or meta.orientation == "left" then
+		contentavaliablerectsize = {
+			width = nil,
+			height = size.height
+		}
+	end
+	
+	stackline.length = 0
+	stackline.width = 0
+	for index, contentlayout in ipairs(layout) do
+		local contentminsize = layoututil.measure_minsize(contentlayout, contentavaliablerectsize, data)
+		if meta.orientation == "down" or meta.orientation == "up" then
+			table.insert(stackline, { position = stackline.length, layout = contentlayout, length = contentminsize.height })
+			stackline.width = math.max(stackline.width, contentminsize.width)
+			stackline.length = stackline.length + contentminsize.height
+		elseif meta.orientation == "right" or meta.orientation == "left" then
+			table.insert(stackline, { position = stackline.length, layout = contentlayout, length = contentminsize.width })
+			stackline.length = stackline.length + contentminsize.width
+			stackline.width = math.max(stackline.width, contentminsize.height)
+		end
+	end
 end

@@ -6,7 +6,7 @@ require("chatroomeffect.util")
 
 local layoututil = {}
 
-local layoututil.preprocess_layout = function(layout_content, userdata)
+layoututil.preprocess_layout = function(layout_content, userdata)
 	local preprocess = function(code, data)
 		local regexresult = regexutil.find("^(?=\\$\\().*(?=\\))$", code)
 		if regexresult then
@@ -36,7 +36,7 @@ end
 ---- 返回： minsize
 	minsize: 当前布局及所有子布局的最小需要尺寸。
 --]]
-local measure_minsize = function(layout, size, data)
+layoututil.measure_minsize = function(layout, size, data)
 	-- 获取布局的元数据。
 	local meta = layoututil.parse_meta(layout, nil, size, data)
 	
@@ -69,7 +69,7 @@ end
 ---- 返回： result
 	result: 当前布局及包含所有子布局的table。
 --]]
-local do_layout = function(layout, parentlayer, rect, data)
+layoututil.do_layout = function(layout, parentlayer, rect, data)
 	-- 获取布局的元数据。
 	local meta = layoututil.parse_meta(layout, parentlayer, rect, data)
 	
@@ -173,6 +173,13 @@ local do_layout = function(layout, parentlayer, rect, data)
 		result.verticalalignment = meta.verticalalignment
 		
 		return result
+	end
+end
+
+layoututil.generate_subtitles = function(line, result, animations)
+	local logic = plugin.logics[layout.layouttype or ""]
+	if logic == nil then error("未定义类型为\""..(layout.layouttype or "").."\"的布局处理逻辑")
+	else return logic.generate_subtitles(line, result, animation)
 	end
 end
 
