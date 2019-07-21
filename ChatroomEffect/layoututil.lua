@@ -7,10 +7,10 @@ require("chatroomeffect.util")
 local layoututil = {}
 
 layoututil.preprocess_layout = function(layout_content, userdata)
-	local preprocess = function(code, data)
+	local preprocess = function(code, userdata)
 		local regexresult = regexutil.find("^(?=\\$\\().*(?=\\))$", code)
 		if regexresult then
-			return loadstring("return function(self) return {"..regexresult[1].str.."} end")(data)
+			return loadstring("return function(self) return {"..regexresult[1].str.."} end")(userdata)
 		else return code
 		end
 	end
@@ -176,10 +176,10 @@ layoututil.do_layout = function(layout, parentlayer, rect, data)
 	end
 end
 
-layoututil.generate_subtitles = function(line, result, animations)
+layoututil.generate_subtitles = function(line, result, timeline, animations)
 	local logic = plugin.logics[layout.layouttype or ""]
 	if logic == nil then error("未定义类型为\""..(layout.layouttype or "").."\"的布局处理逻辑")
-	else return logic.generate_subtitles(line, result, animation)
+	else return logic.generate_subtitles(line, result, timeline, animation)
 	end
 end
 

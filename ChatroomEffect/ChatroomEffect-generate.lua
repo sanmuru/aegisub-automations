@@ -28,7 +28,7 @@ local process_main = function(subtitles, selection)
 	end
 
 	preprocess_layout()
-	local meta = karaskel.collect_head(subtitles, generate_furigana)
+	local meta = karaskel.collect_head(subtitles, false)
 	local res_x, res_y = meta.res_x, meta.res_y
 	if res_x == nil or res_y == nil then
 		res_x, res_y = aegisub.video_size()
@@ -37,17 +37,28 @@ local process_main = function(subtitles, selection)
 		end
 	end
 
+	local timeline = {}
 	local position = 0
-	for _, line in ipairs(line) do
+	timeline.n = 0
+	for _, line in ipairs(lines) do
 		if layouts[line.effect] ~= nil then
 			local layout = layouts[line.effect]
 			local minsize = layoututil.measure_minsize(layout, { width = res_y, height = nil }, data)
 			local result = layoututil.do_layout(layout, 0, { x = 0, y = position, width = res_y, height = minsize.height }, data)
 
-			result.position = position
+			timeline.n = timeline.n + 1
+			timeline[result] = timeline.n
+			table.insert(timeline, { position = position, line = line, layoutresult = result })
 			position = position + result.rect.height
 		end
 	end
+	for _, li in ipairs(timeline) do
+		local newlines = layoututil.generate_subtitles(li.line, li.layoutresult, timeline, animations)
+
+		subtitles.append(newlines)
+	end
+
+	aegisub.set_undo_point("聊天室特效字幕应用完成。")
 end
 
 local style_parse = function(styles, style, paramname)
