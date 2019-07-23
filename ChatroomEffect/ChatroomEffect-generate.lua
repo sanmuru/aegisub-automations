@@ -37,8 +37,8 @@ local process_main = function(subtitles, selection)
 		end
 	end
 
+	local buffer = {}
 	local timeline = {}
-	local position = 0
 	timeline.n = 0
 	for _, line in ipairs(lines) do
 		if layouts[line.effect] ~= nil then
@@ -48,40 +48,17 @@ local process_main = function(subtitles, selection)
 
 			timeline.n = timeline.n + 1
 			timeline[result] = timeline.n
-			table.insert(timeline, { position = position, line = line, layoutresult = result })
-			position = position + result.rect.height
+			table.insert(timeline, result)
+			table.insert(buffer, { line = line, layoutresult = result }
 		end
 	end
-	for _, li in ipairs(timeline) do
+	for _, li in ipairs(buffer) do
 		local newlines = layoututil.generate_subtitles(li.line, li.layoutresult, timeline, animations)
 
 		subtitles.append(newlines)
 	end
 
 	aegisub.set_undo_point("聊天室特效字幕应用完成。")
-end
-
-local style_parse = function(styles, style, paramname)
-	if type(style) == string then
-		local existstyle = styles[style]
-		if existstyle == nil then log_error("未定义名为\""..style.."\"的样式。") end
-		return existstyle
-	elseif type(style) == "table" then
-		newstyle = util.copy(style)
-		newstyle.override = nil -- 清除继承信息。
-		if newstyle.override ~= nil then
-			-- 获取继承树上层样式节点。
-			local override = style_parse(newstyle.override, "override")
-			-- 检查上层节点的每个键。
-			for key, value in pairs(override) do
-				if key ~= "override" then -- 不继承override键。
-					newstyle[key] = newstyle[key] or override[key] -- 进行值的继承。
-				end
-			end
-		end
-		return newstyle
-	else log_error((paramname or "style").."值的格式不正确。")
-	end
 end
 
 

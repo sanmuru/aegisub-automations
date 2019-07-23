@@ -314,6 +314,47 @@ layoututil.parse_meta = function(layout, parentlayer, size, data)
 		meta.verticalalignment = unicode.to_lower_case(layout.verticalalignment)
 	else log_error("verticalalignment值的格式不正确。")
 	end
-
+	
+	-- 计算透明度。
+	if layout.opacity == nil then meta.opacity = 100
+	elseif tonumber(layout.opacity) ~= nil then
+		meta.opacity = util.clamp(tonumber(layout.opacity), 0, 100)
+	else log_error("opacity值的格式不正确。")
+	end
+	
+	-- 计算修剪区域。
+	meta.clip = layout.shape_parse(layout.clip)
+	
 	return meta
+end
+
+layoututil.style_parse = function(styles, style, paramname)
+	local parse_internal = function(paramname)
+	if type(style) == string then
+		local existstyle = styles[style]
+		if existstyle == nil then log_error("未定义名为\""..style.."\"的样式。") end
+		return existstyle
+	elseif type(style) == "table" then
+		newstyle = util.copy(style)
+		newstyle.override = nil -- 清除继承信息。
+		if newstyle.override ~= nil then
+			-- 获取继承树上层样式节点。
+			local override = style_parse(newstyle.override, "override")
+			-- 检查上层节点的每个键。
+			for key, value in pairs(override) do
+				if key ~= "override" then -- 不继承override键。
+					newstyle[key] = newstyle[key] or override[key] -- 进行值的继承。
+				end
+			end
+		end
+		return newstyle
+	else log_error((paramname or "style").."值的格式不正确。")
+	end
+end
+
+layoututil.shape_parse = function(shape)
+	local parser = plugin.shapes[shape.type or ""]
+	if parser == nil then error("未定义类型为\""..(parser.type or "").."\"的形状")
+	else return parser.parse(shape)
+	end
 end
