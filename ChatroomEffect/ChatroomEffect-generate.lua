@@ -6,18 +6,12 @@ local util = require("aegisub.util")
 local interop = require("chatroomeffect.interop")
 local layoututil = require("chatroomeffect.layoututil")
 local plugin = require("chatroomeffect.plugin")
+require("chatroomeffect.util")
 
 script_name = "生成聊天室特效字幕"
 script_description = "将原有的文本转化为聊天室特效字幕。"
 script_author = "Sam Lu"
 script_version = "0.1.20190714"
-
-log_fatal = function(msg, ...) aegisub.log(0, msg, ...) end
-log_error = function(msg, ...) aegisub.log(1, msg, ...) end
-log_warning = function(msg, ...) aegisub.log(2, msg, ...) end
-log_hint = function(msg, ...) aegisub.log(3, msg, ...) end
-log_debug = function(msg, ...) aegisub.log(4, msg, ...) end
-log_trace = function(msg, ...) aegisub.log(5, msg, ...) end
 
 local process_main = function(subtitles, selection)
 	local lines = {}
