@@ -214,10 +214,10 @@ local table_layout = function(meta, size)
 
 		for r = content.row, content.row + content.rowspan - 1 do
 			local row = meta.rows[r]
-			if row.type == "pixel"
+			if row.type == "pixel" then
 				table.insert(rowpixels, { row = r, value = row.value })
 				rowpixels.total = rowpixels.total + row.value
-			elseif row.type == "auto"
+			elseif row.type == "auto" then
 				table.insert(rowautos, r)
 				rowautos.total = rowautos.total + 1
 			elseif row.type == "weight" then
@@ -227,10 +227,10 @@ local table_layout = function(meta, size)
 		end
 		for c = content.column, content.column + content.columnspan - 1 do
 			local column = meta.columns[c]
-			if column.type == "pixel"
+			if column.type == "pixel" then
 				table.insert(columnpixels, { column = c, value = column.value })
 				columnpixels.total = columnpixels.total + column.value
-			elseif column.type == "auto"
+			elseif column.type == "auto" then
 				table.insert(columnautos, c)
 				columnautos.total = columnautos.total + 1
 			elseif column.type == "weight" then
@@ -301,6 +301,7 @@ local table_layout = function(meta, size)
 				for _, rhv in ipairs(rh) do max = math.max(max, rhv) end
 				sizedtable[r] = max
 			end
+		end
 	end
 	-- 计算所有列宽的分配值的最大值。
 	for c, ch in ipairs(sizedtable.columns) do
@@ -311,6 +312,7 @@ local table_layout = function(meta, size)
 				for _, rhv in ipairs(ch) do max = math.max(max, rhv) end
 				sizedtable[c] = max
 			end
+		end
 	end
 	
 	--[[
@@ -327,7 +329,7 @@ local table_layout = function(meta, size)
 		for r = content.row, content.row + content.rowspan - 1 do
 			if sizedtable.rows[r] == nil then
 				local row = meta.columns[r]
-				if row.type == "auto"
+				if row.type == "auto" then
 					table.insert(rowautos, r)
 					rowautos.total = rowautos.total + 1
 				elseif row.type == "weight" then
@@ -341,7 +343,7 @@ local table_layout = function(meta, size)
 		for c = content.column, content.column + content.columnspan - 1 do
 			if sizedtable.columns[c] == nil then
 				local column = meta.columns[c]
-				if column.type == "auto"
+				if column.type == "auto" then
 					table.insert(columnautos, c)
 					columnautos.total = columnautos.total + 1
 				elseif column.type == "weight" then

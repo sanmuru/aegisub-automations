@@ -36,6 +36,10 @@ logic.do_layout = function(layout, rect, meta, data)
 	return result
 end
 
+logic.generate_subtitles = function(line, result, timeline, animation)
+	
+end
+
 local parse_meta = function(layout, size, data, meta)
 	meta = util.copy(meta or {})
 	

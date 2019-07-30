@@ -1,9 +1,27 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28306.52
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29123.88
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "imageconv", "imageconv\imageconv.csproj", "{87429921-BB66-4D7A-AA95-ABBBD80E6A25}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "imageinfo", "imageinfo\imageinfo.csproj", "{C6AEB3FF-38D3-415F-BE28-A2400D0FC884}"
+EndProject
 Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{87429921-BB66-4D7A-AA95-ABBBD80E6A25}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87429921-BB66-4D7A-AA95-ABBBD80E6A25}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87429921-BB66-4D7A-AA95-ABBBD80E6A25}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87429921-BB66-4D7A-AA95-ABBBD80E6A25}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6AEB3FF-38D3-415F-BE28-A2400D0FC884}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6AEB3FF-38D3-415F-BE28-A2400D0FC884}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6AEB3FF-38D3-415F-BE28-A2400D0FC884}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6AEB3FF-38D3-415F-BE28-A2400D0FC884}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection

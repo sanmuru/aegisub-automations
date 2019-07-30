@@ -174,7 +174,7 @@ local flow_layout = function(meta, size)
 				lengthposition = flowline.length,
 				heightposition = flowlines.height
 			})
-			if #flowline > 1 then flowline.length = flowline.length + flowlinelengthspacing
+			if #flowline > 1 then flowline.length = flowline.length + flowlinelengthspacing end
 			flowline.length = flowline.length + getflowlinecontentlength(contentminsize)
 			flowline.height = math.max(flowline.height, getflowlinecontentheight(contentminsize))
 		else

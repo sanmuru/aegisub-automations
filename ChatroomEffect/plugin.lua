@@ -13,47 +13,62 @@ local layoutsrequirepath = "chatroomeffect.layouts"
 local logicsdir = "automation\\include\\chatroomeffect\\logics"
 local logicsrequirepath = "chatroomeffect.logics"
 plugin.logics = {}
-plugin.loadlayoutlogic = function(path)
-	local attr = lfs.attributes(path)
-	assert(type(attr) == "table") -- 如果获取不到属性表则报错
+plugin.loadlayoutlogic = function(source)
+	local layoutlogic
+	if type(source) == "string" then
+		local attr = lfs.attributes(path)
+		assert(type(attr) == "table") -- 如果获取不到属性表则报错
 	
-	if attr.mode == "file" then
-		local regexresult = regexutil.match(".*([^\\\\\\/\\.]+)(\\.[^\\\\\\/\\.]+)", path)
-		if regexresult then
-			local filename, fileextension = regexresult[2].str, regexresult[3].str
-			if unicode.to_lower_case(fileextension) == ".lua" or unicode.to_lower_case(fileextension) == ".dll" then
-				local loadlayoutlogic = function()
-					local layoutlogic = require(layoutsrequirepath.."."..filename) -- 加载布局插件。
-					local loadinternal = function(layoutlogictype, layoutlogic)
-						if plugin.logics[layoutlogictype] == nil then
-							plugin.logics[layoutlogictype] = layoutlogic
-						elseif plugin.logics[layoutlogictype] ~= layoutlogic then
-							if plugin.logics[layoutlogictype].priority == layoutlogic.priority then
-								error("插件优先级别冲突。")
-							elseif plugin.logics[layoutlogictype].priority < layoutlogic.priority then
-								plugin.logics[layoutlogictype] = layoutlogic
-							end
+		if attr.mode == "file" then
+			local regexresult = regexutil.match(".*([^\\\\\\/\\.]+)(\\.[^\\\\\\/\\.]+)", source)
+			if regexresult then
+				local filename, fileextension = regexresult[2].str, regexresult[3].str
+				if unicode.to_lower_case(fileextension) == ".lua" or unicode.to_lower_case(fileextension) == ".moon" then
+					xpcall(
+						function()
+							layoutlogic = require(layoutsrequirepath.."."..filename) -- 加载布局插件。
+						end,
+						function(err)
+							log_warning(string.format("加载布局插件失败：%s\n%s", err, debug.traceback()))
 						end
-					end
-					if type(layoutlogic.type) == "table" then
-						for _, layoutlogictype in ipairs(layoutlogic.type) do
-							loadinternal(layoutlogictype, layoutlogic)
-						end
-					elseif type(layoutlogic.type) == "string" then
-						loadinternal(layoutlogic.type, layoutlogic)
-					else error("无法识别布局插件的类型。")
-					end
+					)
 				end
-				xpcall(loadlayoutlogic, function(err)
-					log_warning(string.format("加载布局插件失败：%s\n%s", err, debug.traceback()))
-				end)
 			end
 		end
+	elseif type(source) == "table" then
+		layoutlogic = source
 	end
+
+	xpcall(
+		function()
+			local loadinternal = function(layoutlogictype, layoutlogic)
+				if plugin.logics[layoutlogictype] == nil then
+					plugin.logics[layoutlogictype] = layoutlogic
+				elseif plugin.logics[layoutlogictype] ~= layoutlogic then
+					if plugin.logics[layoutlogictype].priority == layoutlogic.priority then
+						error("插件优先级别冲突。")
+					elseif plugin.logics[layoutlogictype].priority < layoutlogic.priority then
+						plugin.logics[layoutlogictype] = layoutlogic
+					end
+				end
+			end
+			if type(layoutlogic.type) == "table" then
+				for _, layoutlogictype in ipairs(layoutlogic.type) do
+					loadinternal(layoutlogictype, layoutlogic)
+				end
+			elseif type(layoutlogic.type) == "string" then
+				loadinternal(layoutlogic.type, layoutlogic)
+			else error("无法识别布局插件的类型。")
+			end
+		end,
+		function(err)
+			log_warning(string.format("加载布局插件失败：%s\n%s", err, debug.traceback()))
+		end
+	)
 end
-for entry in lfs.dir(layoutsdir)
+for entry in lfs.dir(logicsdir) do
 	if entry ~= '.' and entry ~= '..' then
-		local path = layoutsdir.."\\"..entry
+		local path = logicsdir.."\\"..entry
 		plugin.loadlayoutlogic(path)
 	end
 end
@@ -61,39 +76,63 @@ end
 local shapesdir = "automation\\include\\chatroomeffect\\shapes"
 local shapesrequirepath = "chatroomeffect.shapes"
 plugin.shapes = {}
-plugin.loadlayoutshape = function(path)
-	local attr = lfs.attributes(path)
-	assert(type(attr) == "table") -- 如果获取不到属性表则报错
+plugin.loadshapes = function(source)
+	local layoutshape
+	if type(source) == "string" then
+		local attr = lfs.attributes(path)
+		assert(type(attr) == "table") -- 如果获取不到属性表则报错
 	
-	if attr.mode == "file" then
-		local regexresult = regexutil.match(".*([^\\\\\\/\\.]+)(\\.[^\\\\\\/\\.]+)", path)
-		if regexresult then
-			local filename, fileextension = regexresult[2].str, regexresult[3].str
-			if unicode.to_lower_case(fileextension) == ".lua" or unicode.to_lower_case(fileextension) == ".dll" then
-				local loadshape = function()
-					local shape = require(layoutsrequirepath.."."..filename) -- 加载形状插件。
-					if type(shape.type) ~= string then
-						error("无法识别形状插件的类型。")
-					end
-					if plugin.shapes[shape.type] == nil then
-						plugin.shapes[shape.type] = shape
-					elseif plugin.shapes[shape.type].priority == shape.priority then
-						error("插件优先级别冲突。")
-					elseif plugin.shapes[shape.type].priority < shape.priority then
-						plugin.shapes[shape.type] = shape
-					end
+		if attr.mode == "file" then
+			local regexresult = regexutil.match(".*([^\\\\\\/\\.]+)(\\.[^\\\\\\/\\.]+)", source)
+			if regexresult then
+				local filename, fileextension = regexresult[2].str, regexresult[3].str
+				if unicode.to_lower_case(fileextension) == ".lua" or unicode.to_lower_case(fileextension) == ".moon" then
+					xpcall(
+						function()
+							layoutshape = require(layoutsrequirepath.."."..filename) -- 加载图形。
+						end,
+						function(err)
+							log_warning(string.format("加载布局插件失败：%s\n%s", err, debug.traceback()))
+						end
+					)
 				end
-				xpcall(loadshape, function(err)
-					log_warning(string.format("加载形状插件失败：%s\n%s", err, debug.traceback()))
-				end)
 			end
 		end
+	elseif type(source) == "table" then
+		layoutshape = source
 	end
+
+	xpcall(
+		function()
+			local loadinternal = function(layoutshapetype, layoutshape)
+				if plugin.shapes[layoutshapetype] == nil then
+					plugin.shapes[layoutshapetype] = layoutshape
+				elseif plugin.shapes[layoutshapetype] ~= layoutshape then
+					if plugin.shapes[layoutshapetype].priority == layoutshape.priority then
+						error("插件优先级别冲突。")
+					elseif plugin.shapes[layoutshapetype].priority < layoutshape.priority then
+						plugin.shapes[layoutshapetype] = layoutshape
+					end
+				end
+			end
+			if type(layoutshape.type) == "table" then
+				for _, layoutshapetype in ipairs(layoutshape.type) do
+					loadinternal(layoutshapetype, layoutshape)
+				end
+			elseif type(layoutshape.type) == "string" then
+				loadinternal(layoutshape.type, layoutshape)
+			else error("无法识别布局插件的类型。")
+			end
+		end,
+		function(err)
+			log_warning(string.format("加载布局插件失败：%s\n%s", err, debug.traceback()))
+		end
+	)
 end
-for entry in lfs.dir(layoutsdir)
+for entry in lfs.dir(shapesdir) do
 	if entry ~= '.' and entry ~= '..' then
-		local path = layoutsdir.."\\"..entry
-		plugin.loadlayoutshape(path)
+		local path = shapesdir.."\\"..entry
+		plugin.loadshapes(path)
 	end
 end
 

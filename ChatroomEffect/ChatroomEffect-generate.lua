@@ -43,7 +43,7 @@ local process_main = function(subtitles, selection)
 			timeline.n = timeline.n + 1
 			timeline[result] = timeline.n
 			table.insert(timeline, result)
-			table.insert(buffer, { line = line, layoutresult = result }
+			table.insert(buffer, { line = line, layoutresult = result })
 		end
 	end
 	for _, li in ipairs(buffer) do

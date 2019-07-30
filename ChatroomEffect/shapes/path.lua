@@ -6,7 +6,7 @@ local shape = {}
 shape.type = { "", "path" }
 shape.priority = 100
 
-local shape.parse = function(s)
+shape.parse = function(s)
 	if s == nil then return nil
 	elseif s == "string" then
 		local reader = {

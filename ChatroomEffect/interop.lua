@@ -96,7 +96,7 @@ interop.image.getinfo = function(...)
 		end
 	
 		local errorstate, resultlines = xpacall(
-			funtcion()
+			function()
 				return interop.execute("imageinfo", "@"..tmpfilepath)
 			end,
 			function(err)
