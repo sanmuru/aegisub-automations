@@ -13,16 +13,30 @@ script_description = "将原有的文本转化为聊天室特效字幕。"
 script_author = "Sam Lu"
 script_version = "0.1.20190714"
 
-local process_main = function(subtitles, selection)
-	local lines = {}
-	if selectedlines then
-		for i = 1, #selection do table.insert(lines, subtitles[selection[i]]) end
-	else
-		for i = 1, #subtitles do table.insert(lines, subtitles[i]) end
+local get_settings = function(subtitles, selection, meta, styles)
+	local file, tmpfilepath = interop.createtmpfile()
+	for _, style in ipairs(styles) do
+		file:write(style.name)
+		file:write("\\r\\n")
 	end
+	
+	local errorstate, resultlines = xpcall(
+		function()
+			return interop.execute("credialogs", "@"..tmpfilepath)
+		end,
+		function(err)
+			os.remove(tmpfilepath)
+			print(debug.traceback())
+		end
+	)
+	if not errorstate then error("error ocured in 'execute'") end
+	os.remove(tmpfilepath)
+end
 
-	preprocess_layout()
-	local meta = karaskel.collect_head(subtitles, false)
+local process_main = function(subtitles, selection)
+	--layoututil.preprocess_layout()
+
+	local meta, styles = karaskel.collect_head(subtitles, false)
 	local res_x, res_y = meta.res_x, meta.res_y
 	if res_x == nil or res_y == nil then
 		res_x, res_y = aegisub.video_size()
@@ -30,6 +44,15 @@ local process_main = function(subtitles, selection)
 			log_error("无法获取显示范围的宽度和高度。")
 		end
 	end
+	
+	local lines = {}
+	if selectedlines then
+		for i = 1, #selection do table.insert(lines, subtitles[selection[i]]) end
+	else
+		for i = 1, #subtitles do table.insert(lines, subtitles[i]) end
+	end
+
+	local settings = get_settings(subtitles, selection, meta, styles)
 
 	local buffer = {}
 	local timeline = {}
@@ -55,6 +78,6 @@ local process_main = function(subtitles, selection)
 	aegisub.set_undo_point("聊天室特效字幕应用完成。")
 end
 
-
-
+interop.createtmpdir()
 aegisub.register_macro(script_name, script_description, process_main)
+interop.deletetmpdir()

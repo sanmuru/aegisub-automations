@@ -6,134 +6,120 @@ require("chatroomeffect.util")
 
 local plugin = {}
 
-local layoutsdir = "automation\\include\\chatroomeffect\\layouts"
-local layoutsrequirepath = "chatroomeffect.layouts"
-
-
-local logicsdir = "automation\\include\\chatroomeffect\\logics"
-local logicsrequirepath = "chatroomeffect.logics"
-plugin.logics = {}
-plugin.loadlayoutlogic = function(source)
-	local layoutlogic
-	if type(source) == "string" then
-		local attr = lfs.attributes(path)
-		assert(type(attr) == "table") -- 如果获取不到属性表则报错
+local createplugintype = function(plugintype, directoryname)
+	if type(plugintype) ~= "string" then error(string.format("bad argument #1 to 'createplugintype' (string expected, got %s)", type(plugintype))) end
+	if type(directoryname) ~= "string" then error(string.format("bad argument #2 to 'createplugintype' (string expected, got %s)", type(directoryname))) end
 	
-		if attr.mode == "file" then
-			local regexresult = regexutil.match(".*([^\\\\\\/\\.]+)(\\.[^\\\\\\/\\.]+)", source)
-			if regexresult then
-				local filename, fileextension = regexresult[2].str, regexresult[3].str
-				if unicode.to_lower_case(fileextension) == ".lua" or unicode.to_lower_case(fileextension) == ".moon" then
-					xpcall(
-						function()
-							layoutlogic = require(layoutsrequirepath.."."..filename) -- 加载布局插件。
-						end,
-						function(err)
-							log_warning(string.format("加载布局插件失败：%s\n%s", err, debug.traceback()))
-						end
-					)
-				end
-			end
-		end
-	elseif type(source) == "table" then
-		layoutlogic = source
-	end
+	local newplugintype = {}
 
-	xpcall(
-		function()
-			local loadinternal = function(layoutlogictype, layoutlogic)
-				if plugin.logics[layoutlogictype] == nil then
-					plugin.logics[layoutlogictype] = layoutlogic
-				elseif plugin.logics[layoutlogictype] ~= layoutlogic then
-					if plugin.logics[layoutlogictype].priority == layoutlogic.priority then
-						error("插件优先级别冲突。")
-					elseif plugin.logics[layoutlogictype].priority < layoutlogic.priority then
-						plugin.logics[layoutlogictype] = layoutlogic
+	newplugintype.loaddirectory = "automation\\include\\chatroomeffect\\"..directoryname
+	newplugintype.requirepath = "chatroomeffect.\\"..directoryname
+	newplugintype.load = function(self, source)
+		local p
+		if type(source) == "string" then
+			local attr = lfs.attributes(path)
+			assert(type(attr) == "table") -- 如果获取不到属性表则报错
+	
+			if attr.mode == "file" then
+				local regexresult = regexutil.match(".*([^\\\\\\/\\.]+)(\\.[^\\\\\\/\\.]+)", source)
+				if regexresult then
+					local filename, fileextension = regexresult[2].str, regexresult[3].str
+					if unicode.to_lower_case(fileextension) == ".lua" or unicode.to_lower_case(fileextension) == ".moon" then
+						xpcall(
+							function()
+								p = dofile(self.requirepath.."."..filename) -- 加载文件。
+							end,
+							function(err)
+								log_warning(string.format("加载布局插件失败：%s\n%s", err, debug.traceback()))
+							end
+						)
 					end
 				end
 			end
-			if type(layoutlogic.type) == "table" then
-				for _, layoutlogictype in ipairs(layoutlogic.type) do
-					loadinternal(layoutlogictype, layoutlogic)
-				end
-			elseif type(layoutlogic.type) == "string" then
-				loadinternal(layoutlogic.type, layoutlogic)
-			else error("无法识别布局插件的类型。")
-			end
-		end,
-		function(err)
-			log_warning(string.format("加载布局插件失败：%s\n%s", err, debug.traceback()))
+		elseif type(source) == "table" then
+			p = source
 		end
-	)
-end
-for entry in lfs.dir(logicsdir) do
-	if entry ~= '.' and entry ~= '..' then
-		local path = logicsdir.."\\"..entry
-		plugin.loadlayoutlogic(path)
-	end
-end
 
-local shapesdir = "automation\\include\\chatroomeffect\\shapes"
-local shapesrequirepath = "chatroomeffect.shapes"
-plugin.shapes = {}
-plugin.loadshapes = function(source)
-	local layoutshape
-	if type(source) == "string" then
-		local attr = lfs.attributes(path)
-		assert(type(attr) == "table") -- 如果获取不到属性表则报错
-	
-		if attr.mode == "file" then
-			local regexresult = regexutil.match(".*([^\\\\\\/\\.]+)(\\.[^\\\\\\/\\.]+)", source)
-			if regexresult then
-				local filename, fileextension = regexresult[2].str, regexresult[3].str
-				if unicode.to_lower_case(fileextension) == ".lua" or unicode.to_lower_case(fileextension) == ".moon" then
-					xpcall(
-						function()
-							layoutshape = require(layoutsrequirepath.."."..filename) -- 加载图形。
-						end,
-						function(err)
-							log_warning(string.format("加载布局插件失败：%s\n%s", err, debug.traceback()))
+		xpcall(
+			function()
+				local loadinternal = function(ptype)
+					if plugin[plugintype][ptype] == nil then
+						plugin[plugintype][ptype] = p
+					elseif plugin[plugintype][ptype] ~= p then
+						if plugin[plugintype][ptype].priority == p.priority then
+							error("插件优先级别冲突。")
+						elseif plugin[plugintype][ptype].priority < p.priority then
+							plugin[plugintype][ptype] = p
 						end
-					)
-				end
-			end
-		end
-	elseif type(source) == "table" then
-		layoutshape = source
-	end
-
-	xpcall(
-		function()
-			local loadinternal = function(layoutshapetype, layoutshape)
-				if plugin.shapes[layoutshapetype] == nil then
-					plugin.shapes[layoutshapetype] = layoutshape
-				elseif plugin.shapes[layoutshapetype] ~= layoutshape then
-					if plugin.shapes[layoutshapetype].priority == layoutshape.priority then
-						error("插件优先级别冲突。")
-					elseif plugin.shapes[layoutshapetype].priority < layoutshape.priority then
-						plugin.shapes[layoutshapetype] = layoutshape
 					end
 				end
-			end
-			if type(layoutshape.type) == "table" then
-				for _, layoutshapetype in ipairs(layoutshape.type) do
-					loadinternal(layoutshapetype, layoutshape)
+				if type(p.type) == "table" then
+					for _, ptype in ipairs(p.type) do
+						loadinternal(ptype)
+					end
+				elseif type(p.type) == "string" then
+					loadinternal(p.type)
+				else error("无法识别布局插件的类型。")
 				end
-			elseif type(layoutshape.type) == "string" then
-				loadinternal(layoutshape.type, layoutshape)
-			else error("无法识别布局插件的类型。")
+			end,
+			function(err)
+				log_warning(string.format("加载布局插件失败：%s\n%s", err, debug.traceback()))
 			end
-		end,
-		function(err)
-			log_warning(string.format("加载布局插件失败：%s\n%s", err, debug.traceback()))
+		)
+	end
+
+	setmetatable(newplugintype, {
+		__existedkeys = (function(self)
+			local t = {}
+			for k, v in pairs(self) do
+				table.insert(t, k)
+			end
+
+			return t
+		end)(newplugintype),
+		__newindex = function(self, key, value)
+			local isexist = false
+			for i, k in ipairs(self.__existedkeys) do
+				if key == k then
+					isexist = true
+					break
+				end
+			end
+			
+			if not isexist then self[key] = value end
 		end
-	)
+	})
+
+	plugin[plugintype] = newplugintype
+	return newplugintype
 end
-for entry in lfs.dir(shapesdir) do
-	if entry ~= '.' and entry ~= '..' then
-		local path = shapesdir.."\\"..entry
-		plugin.loadshapes(path)
+local preloadplugintype = function(plugintype)
+	for entry in lfs.dir(plugin[plugintype].loaddirectory) do
+		if entry ~= '.' and entry ~= '..' then
+			local path = plugin[plugintype].loaddirectory.."\\"..entry
+			plugin[plugintype].load(path)
+		end
 	end
 end
+
+--[[ plugin.layout ]]
+createplugintype("layout", "layouts")
+preloadplugintype("layout")
+
+--[[ plugin.layoutlogic ]]
+createplugintype("layoutlogic", "logics")
+preloadplugintype("layoutlogic")
+
+--[[ plugin.actor ]]
+createplugintype("actor", "actors")
+preloadplugintype("actor")
+
+--[[ plugin.shape ]]
+createplugintype("shape", "shapes")
+preloadplugintype("shape")
+
+--[[ plugin.animation ]]
+createplugintype("animation", "animations")
+preloadplugintype("animation")
 
 return plugin

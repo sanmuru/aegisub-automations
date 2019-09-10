@@ -19,8 +19,17 @@ interop.deletetmpdir = function()
 	return os.execute("rd /s /q "..tmpdir)
 end
 
+interop.createtmpfile = function()
+	interop.createtmpdir()
+	local tmpfilepath = tmpdir..os.tmpname()
+	local file, err = io.open(tmpfilepath, "w")
+	if file == nil then error(string.format("创建临时文件失败 (%s)。", err)) end
+
+	return file, tmpfilepath
+end
+
 interop.execute = function(tool, ...)
-    if type(tool) ~= string then
+    if type(tool) ~= "string" then
         error(string.format("bad argument #1 to 'execute' (string expected, got %s)", type(tool)))
     end
 
@@ -61,7 +70,7 @@ interop.image.getinfo = function(...)
 
 	for index = 1, select("#", ...) do
 		local path = select(index, ...)
-		if type(path) ~= string then
+		if type(path) ~= "string" then
 			error(string.format("bad argument #%d to 'getinfo' (string expected, got %s)", index, type(path)))
 		end
 		
@@ -87,9 +96,7 @@ interop.image.getinfo = function(...)
 	end
 
 	if #unknownlist ~= 0 then
-		local tmpfilepath = tmpfilepath..os.tmpname()
-		local file = io.open(tmpfilepath, "w")
-		if file == nil then error("创建临时文件失败。") end
+		local file, tmpfilepath = interop.createtmpfile()
 		for _, unknown in ipairs(unknownlist) do
 			file:write(unknown)
 			file:write("\\r\\n")
