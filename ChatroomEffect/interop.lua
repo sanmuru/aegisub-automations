@@ -102,7 +102,7 @@ interop.image.getinfo = function(...)
 			file:write("\\r\\n")
 		end
 	
-		local errorstate, resultlines = xpacall(
+		local errorstate, resultlines = xpcall(
 			function()
 				return interop.execute("imageinfo", "@"..tmpfilepath)
 			end,
