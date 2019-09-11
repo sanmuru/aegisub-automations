@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using System.Xml;
 
 namespace SamLu.Cre.Dialogs
 {
@@ -96,7 +97,78 @@ namespace SamLu.Cre.Dialogs
         {
             if (this.sfdSaveSettings.ShowDialog() == DialogResult.OK)
             {
+                XmlDocument document = new XmlDocument();
+                document.AppendChild(document.CreateXmlDeclaration("1.0", Encoding.UTF8.WebName, null));
 
+                XmlElement settingsE = document.CreateElement("Settings");
+                document.AppendChild(settingsE);
+
+                XmlElement layoutsE = document.CreateElement("Layouts");
+                settingsE.AppendChild(layoutsE);
+                foreach (var item in this.ipvLayouts.PluginItems)
+                {
+                    XmlElement pluginE = document.CreateElement("Plugin");
+                    layoutsE.AppendChild(pluginE);
+                    pluginE.SetAttribute("Name", item.Name);
+                    pluginE.SetAttribute("Source", item.Source);
+                }
+
+                XmlElement logicsE = document.CreateElement("Logics");
+                settingsE.AppendChild(logicsE);
+                foreach (var item in this.ipvLogics.PluginItems)
+                {
+                    XmlElement pluginE = document.CreateElement("Plugin");
+                    logicsE.AppendChild(pluginE);
+                    pluginE.SetAttribute("Name", item.Name);
+                    pluginE.SetAttribute("Source", item.Source);
+                }
+
+                XmlElement speakersE = document.CreateElement("Speakers");
+                settingsE.AppendChild(speakersE);
+                foreach (var item in this.ipvSpeakers.PluginItems)
+                {
+                    XmlElement pluginE = document.CreateElement("Plugin");
+                    speakersE.AppendChild(pluginE);
+                    pluginE.SetAttribute("Name", item.Name);
+                    pluginE.SetAttribute("Source", item.Source);
+                }
+
+                XmlElement shapesE = document.CreateElement("Shapes");
+                settingsE.AppendChild(shapesE);
+                foreach (var item in this.ipvShapes.PluginItems)
+                {
+                    XmlElement pluginE = document.CreateElement("Plugin");
+                    shapesE.AppendChild(pluginE);
+                    pluginE.SetAttribute("Name", item.Name);
+                    pluginE.SetAttribute("Source", item.Source);
+                }
+
+                XmlElement animationsE = document.CreateElement("Animations");
+                settingsE.AppendChild(animationsE);
+                foreach (var item in this.ipvAnimations.PluginItems)
+                {
+                    XmlElement pluginE = document.CreateElement("Plugin");
+                    animationsE.AppendChild(pluginE);
+                    pluginE.SetAttribute("Name", item.Name);
+                    pluginE.SetAttribute("Source", item.Source);
+                }
+
+                XmlElement applyToE = document.CreateElement("ApplyTo");
+                settingsE.AppendChild(applyToE);
+                if (this.rbtn_ApplyToAllLines.Checked) applyToE.SetAttribute("Target", "AllLines");
+                else if (this.rbtn_ApplyToSelectedLines.Checked) applyToE.SetAttribute("Target", "SelectedLines");
+                else if (this.rbtn_ApplyToEffectList.Checked)
+                {
+                    applyToE.SetAttribute("Target", "EffectList");
+                    foreach (string effect in this.clb_EffectList.CheckedItems)
+                    {
+                        XmlElement effectE = document.CreateElement("Effect");
+                        effectE.InnerText = effect;
+                        applyToE.AppendChild(effectE);
+                    }
+                }
+
+                document.Save(this.sfdSaveSettings.FileName);
             }
         }
 

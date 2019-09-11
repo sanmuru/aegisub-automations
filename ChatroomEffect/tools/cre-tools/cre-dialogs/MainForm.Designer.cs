@@ -48,11 +48,11 @@
             this.cateTitle_ApplyTo = new SamLu.Cre.Dialogs.Controls.CategoryTitle();
             this.btnMenu_EssentialSettings = new System.Windows.Forms.Button();
             this.cateTitle_EssentialSettings = new SamLu.Cre.Dialogs.Controls.CategoryTitle();
-            this.includedPluginView5 = new SamLu.Cre.Dialogs.Controls.IncludedPluginView();
-            this.includedPluginView2 = new SamLu.Cre.Dialogs.Controls.IncludedPluginView();
-            this.includedPluginView3 = new SamLu.Cre.Dialogs.Controls.IncludedPluginView();
-            this.includedPluginView1 = new SamLu.Cre.Dialogs.Controls.IncludedPluginView();
-            this.includedPluginView4 = new SamLu.Cre.Dialogs.Controls.IncludedPluginView();
+            this.ipvAnimations = new SamLu.Cre.Dialogs.Controls.IncludedPluginView();
+            this.ipvLogics = new SamLu.Cre.Dialogs.Controls.IncludedPluginView();
+            this.ipvSpeakers = new SamLu.Cre.Dialogs.Controls.IncludedPluginView();
+            this.ipvLayouts = new SamLu.Cre.Dialogs.Controls.IncludedPluginView();
+            this.ipvShapes = new SamLu.Cre.Dialogs.Controls.IncludedPluginView();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer)).BeginInit();
             this.splitContainer.Panel1.SuspendLayout();
             this.splitContainer.Panel2.SuspendLayout();
@@ -131,13 +131,13 @@
             this.splitContainer.Panel2.AutoScrollMargin = new System.Drawing.Size(0, 8);
             this.splitContainer.Panel2.BackColor = System.Drawing.SystemColors.ControlLightLight;
             this.splitContainer.Panel2.Controls.Add(this.cateTitle_EssentialSettings);
-            this.splitContainer.Panel2.Controls.Add(this.includedPluginView5);
+            this.splitContainer.Panel2.Controls.Add(this.ipvAnimations);
             this.splitContainer.Panel2.Controls.Add(this.cateTitle_ApplyTo);
-            this.splitContainer.Panel2.Controls.Add(this.includedPluginView2);
-            this.splitContainer.Panel2.Controls.Add(this.includedPluginView3);
-            this.splitContainer.Panel2.Controls.Add(this.includedPluginView1);
+            this.splitContainer.Panel2.Controls.Add(this.ipvLogics);
+            this.splitContainer.Panel2.Controls.Add(this.ipvSpeakers);
+            this.splitContainer.Panel2.Controls.Add(this.ipvLayouts);
             this.splitContainer.Panel2.Controls.Add(this.pnl_ApplyTo);
-            this.splitContainer.Panel2.Controls.Add(this.includedPluginView4);
+            this.splitContainer.Panel2.Controls.Add(this.ipvShapes);
             this.splitContainer.Panel2.Scroll += new System.Windows.Forms.ScrollEventHandler(this.SplitContainer_Panel2_Scroll);
             this.splitContainer.Size = new System.Drawing.Size(784, 561);
             this.splitContainer.SplitterDistance = 120;
@@ -329,73 +329,73 @@
             // 
             // includedPluginView5
             // 
-            this.includedPluginView5.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.ipvAnimations.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.includedPluginView5.BrowseText = "动画(&A)";
-            this.includedPluginView5.DescriptionText = "动画。";
-            this.includedPluginView5.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.includedPluginView5.Location = new System.Drawing.Point(2, 950);
-            this.includedPluginView5.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.includedPluginView5.Name = "includedPluginView5";
-            this.includedPluginView5.Size = new System.Drawing.Size(635, 222);
-            this.includedPluginView5.TabIndex = 10;
-            this.includedPluginView5.TitleText = "动画";
+            this.ipvAnimations.BrowseText = "动画(&A)";
+            this.ipvAnimations.DescriptionText = "动画。";
+            this.ipvAnimations.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.ipvAnimations.Location = new System.Drawing.Point(2, 950);
+            this.ipvAnimations.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.ipvAnimations.Name = "includedPluginView5";
+            this.ipvAnimations.Size = new System.Drawing.Size(635, 222);
+            this.ipvAnimations.TabIndex = 10;
+            this.ipvAnimations.TitleText = "动画";
             // 
             // includedPluginView2
             // 
-            this.includedPluginView2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.ipvLogics.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.includedPluginView2.BrowseText = "布局逻辑(&P)";
-            this.includedPluginView2.DescriptionText = "布局逻辑。";
-            this.includedPluginView2.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.includedPluginView2.Location = new System.Drawing.Point(2, 260);
-            this.includedPluginView2.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.includedPluginView2.Name = "includedPluginView2";
-            this.includedPluginView2.Size = new System.Drawing.Size(635, 222);
-            this.includedPluginView2.TabIndex = 6;
-            this.includedPluginView2.TitleText = "布局逻辑";
+            this.ipvLogics.BrowseText = "布局逻辑(&P)";
+            this.ipvLogics.DescriptionText = "布局逻辑。";
+            this.ipvLogics.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.ipvLogics.Location = new System.Drawing.Point(2, 260);
+            this.ipvLogics.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.ipvLogics.Name = "includedPluginView2";
+            this.ipvLogics.Size = new System.Drawing.Size(635, 222);
+            this.ipvLogics.TabIndex = 6;
+            this.ipvLogics.TitleText = "布局逻辑";
             // 
             // includedPluginView3
             // 
-            this.includedPluginView3.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.ipvSpeakers.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.includedPluginView3.BrowseText = "形状(&S)";
-            this.includedPluginView3.DescriptionText = "形状。";
-            this.includedPluginView3.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.includedPluginView3.Location = new System.Drawing.Point(2, 720);
-            this.includedPluginView3.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.includedPluginView3.Name = "includedPluginView3";
-            this.includedPluginView3.Size = new System.Drawing.Size(635, 222);
-            this.includedPluginView3.TabIndex = 8;
-            this.includedPluginView3.TitleText = "形状";
+            this.ipvSpeakers.BrowseText = "形状(&S)";
+            this.ipvSpeakers.DescriptionText = "形状。";
+            this.ipvSpeakers.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.ipvSpeakers.Location = new System.Drawing.Point(2, 720);
+            this.ipvSpeakers.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.ipvSpeakers.Name = "includedPluginView3";
+            this.ipvSpeakers.Size = new System.Drawing.Size(635, 222);
+            this.ipvSpeakers.TabIndex = 8;
+            this.ipvSpeakers.TitleText = "形状";
             // 
             // includedPluginView1
             // 
-            this.includedPluginView1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.ipvLayouts.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.includedPluginView1.BrowseText = "布局(&L)";
-            this.includedPluginView1.DescriptionText = "布局是用来表示复杂的绘图层次中各素材布置的方式。";
-            this.includedPluginView1.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.includedPluginView1.Location = new System.Drawing.Point(2, 30);
-            this.includedPluginView1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.includedPluginView1.Name = "includedPluginView1";
-            this.includedPluginView1.Size = new System.Drawing.Size(635, 222);
-            this.includedPluginView1.TabIndex = 6;
-            this.includedPluginView1.TitleText = "布局";
+            this.ipvLayouts.BrowseText = "布局(&L)";
+            this.ipvLayouts.DescriptionText = "布局是用来表示复杂的绘图层次中各素材布置的方式。";
+            this.ipvLayouts.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.ipvLayouts.Location = new System.Drawing.Point(2, 30);
+            this.ipvLayouts.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.ipvLayouts.Name = "includedPluginView1";
+            this.ipvLayouts.Size = new System.Drawing.Size(635, 222);
+            this.ipvLayouts.TabIndex = 6;
+            this.ipvLayouts.TitleText = "布局";
             // 
             // includedPluginView4
             // 
-            this.includedPluginView4.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.ipvShapes.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.includedPluginView4.BrowseText = "说话人(&A)";
-            this.includedPluginView4.DescriptionText = "说话人。";
-            this.includedPluginView4.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.includedPluginView4.Location = new System.Drawing.Point(2, 490);
-            this.includedPluginView4.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.includedPluginView4.Name = "includedPluginView4";
-            this.includedPluginView4.Size = new System.Drawing.Size(635, 222);
-            this.includedPluginView4.TabIndex = 9;
-            this.includedPluginView4.TitleText = "说话人";
+            this.ipvShapes.BrowseText = "说话人(&A)";
+            this.ipvShapes.DescriptionText = "说话人。";
+            this.ipvShapes.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.ipvShapes.Location = new System.Drawing.Point(2, 490);
+            this.ipvShapes.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.ipvShapes.Name = "includedPluginView4";
+            this.ipvShapes.Size = new System.Drawing.Size(635, 222);
+            this.ipvShapes.TabIndex = 9;
+            this.ipvShapes.TitleText = "说话人";
             // 
             // MainForm
             // 
@@ -434,16 +434,16 @@
         private System.Windows.Forms.Button btnMenu_ApplyTo;
         private Controls.CategoryTitle cateTitle_ApplyTo;
         private System.Windows.Forms.Panel pnl_ApplyTo;
-        private Controls.IncludedPluginView includedPluginView1;
+        private Controls.IncludedPluginView ipvLayouts;
         private Controls.CategoryTitle cateTitle_EssentialSettings;
         private System.Windows.Forms.Button btnSaveSettings;
         private System.Windows.Forms.Button btnLoadSettings;
         private System.Windows.Forms.Button btnApply;
         private System.Windows.Forms.Button btnCancel;
-        private Controls.IncludedPluginView includedPluginView2;
-        private Controls.IncludedPluginView includedPluginView3;
-        private Controls.IncludedPluginView includedPluginView4;
-        private Controls.IncludedPluginView includedPluginView5;
+        private Controls.IncludedPluginView ipvLogics;
+        private Controls.IncludedPluginView ipvSpeakers;
+        private Controls.IncludedPluginView ipvShapes;
+        private Controls.IncludedPluginView ipvAnimations;
         private System.Windows.Forms.OpenFileDialog ofdLoadSettings;
         private System.Windows.Forms.SaveFileDialog sfdSaveSettings;
         private System.Windows.Forms.Panel pnl_EffectList;

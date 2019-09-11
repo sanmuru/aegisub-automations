@@ -23,6 +23,10 @@ namespace SamLu.Cre.Dialogs.Controls
         [Description("浏览按钮的文本。")]
         public string BrowseText { get => this.btnEdit.Text; set => this.btnEdit.Text = value; }
 
+        public PluginInfo[] PluginItems => this.lvPlugins.Items.OfType<ListViewItem>().Select(item=>
+            new PluginInfo(item.SubItems[0].Text, item.SubItems[1].Text)
+        ).ToArray();
+
         private IncludePluginDialog defaultDialog = new IncludePluginDialog();
         private IncludePluginDialog dialog = null;
         [Category("内部组件")]
@@ -47,6 +51,33 @@ namespace SamLu.Cre.Dialogs.Controls
                     );
                     this.lvPlugins.Items.Add(newItem);
                 }
+            }
+        }
+    }
+
+    partial class IncludedPluginView
+    {
+        public struct PluginInfo : IEquatable<PluginInfo>
+        {
+            public string Name { get; private set; }
+            public string Source { get; private set; }
+
+            public PluginInfo(string name, string source)
+            {
+                this.Name = name ?? throw new ArgumentNullException(nameof(name));
+                this.Source = source ?? throw new ArgumentNullException(nameof(source));
+            }
+
+            public override bool Equals(object obj) => obj != null && obj is PluginInfo info && this.Equals(info);
+
+            public bool Equals(PluginInfo other) => this.Name == other.Name && string.Equals(this.Source, other.Source, StringComparison.OrdinalIgnoreCase);
+
+            public override int GetHashCode()
+            {
+                var hashCode = -2113663506;
+                hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.Name);
+                hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.Source.ToLower());
+                return hashCode;
             }
         }
     }

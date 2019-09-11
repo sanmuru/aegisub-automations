@@ -13,9 +13,10 @@ script_description = "将原有的文本转化为聊天室特效字幕。"
 script_author = "Sam Lu"
 script_version = "0.1.20190714"
 
-local get_settings = function(subtitles, selection, meta, styles)
+local get_settings = function(subtitles, selection, meta, styles, plugins)
 	local file, tmpfilepath = interop.createtmpfile()
 	for _, style in ipairs(styles) do
+		file:write("style: ")
 		file:write(style.name)
 		file:write("\\r\\n")
 	end
